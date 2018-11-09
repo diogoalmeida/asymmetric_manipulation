@@ -8,6 +8,10 @@ namespace coordination_algorithms
 {
   typedef Eigen::Matrix<double, 6, 1> Vector6d;
   typedef Eigen::Vector3d Vector3d;
+  typedef Eigen::Matrix<double, 12, 12> Matrix12d;
+  typedef Eigen::Matrix<double, 6, 6> Matrix6d;
+  typedef Eigen::Matrix<double, 12, 1> Vector12d;
+
   /**
     Implements an interface for the coordination algorithms
   **/
