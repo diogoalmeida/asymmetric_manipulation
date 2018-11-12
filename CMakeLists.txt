@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(coordination_algorithms_experiments)
+project(coordination_experiments)
 
 find_package(
   catkin REQUIRED COMPONENTS
@@ -23,6 +23,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_library(ects src/ects.cpp src/experiment_base.cpp)
+add_library(ects src/ects.cpp src/algorithm_base.cpp)
 target_link_libraries(ects ${catkin_LIBRARIES})
 add_dependencies(ects ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)

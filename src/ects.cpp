@@ -2,7 +2,7 @@
 
 namespace coordination_algorithms
 {
-  ECTS::ECTS() : ExperimentBase() {}
+  ECTS::ECTS() : AlgorithmBase() {}
 
   Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
   {
@@ -31,6 +31,10 @@ namespace coordination_algorithms
     damped_inverse = (J*J.transpose() + damping_*Matrix12d::Identity());
 
     q_dot = J.transpose()*damped_inverse.colPivHouseholderQr().solve(total_twist);
+
+    // TODO: Parameters
+    alpha_ = 0.5;
+    damping_ = 0.0001;
 
     return q_dot;
   }

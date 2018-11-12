@@ -1,5 +1,5 @@
-#ifndef __EXPERIMENT_BASE__
-#define __EXPERIMENT_BASE__
+#ifndef __ALGORITHM_BASE__
+#define __ALGORITHM_BASE__
 
 #include <ros/ros.h>
 #include <generic_control_toolbox/kdl_manager.hpp>
@@ -15,14 +15,14 @@ namespace coordination_algorithms
   /**
     Implements an interface for the coordination algorithms
   **/
-  class ExperimentBase
+  class AlgorithmBase
   {
   public:
     /**
       Construct a coordination algorithm.
     **/
-    ExperimentBase();
-    ~ExperimentBase() {}
+    AlgorithmBase();
+    ~AlgorithmBase() {}
 
     /**
       Implement the coordination algorithm. Given reference absolute and relative twists for a given task frame,

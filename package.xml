@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>coordination_algorithms_experiments</name>
+  <name>coordination_experiments</name>
   <version>1.0.0</version>
   <description>
     Implements controllers and experiments for different dual-arm coordination algorithms.

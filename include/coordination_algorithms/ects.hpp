@@ -1,14 +1,14 @@
 #ifndef __ECTS__
 #define __ECTS__
 
-#include <coordination_algorithms/experiment_base.hpp>
+#include <coordination_algorithms/algorithm_base.hpp>
 
 namespace coordination_algorithms
 {
   /**
     Implements the extended cooperative task space (ECTS) algorithm
   **/
-  class ECTS : public ExperimentBase
+  class ECTS : public AlgorithmBase
   {
   public:
     ECTS();
