@@ -37,7 +37,7 @@ namespace coordination_algorithms
     **/
     virtual Eigen::VectorXd control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist) = 0;
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
-    std::string eef1_, eef1_;
+    std::string eef1_, eef2_;
 
   protected:
     ros::NodeHandle nh_;
