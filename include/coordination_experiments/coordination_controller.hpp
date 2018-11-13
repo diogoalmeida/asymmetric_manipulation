@@ -5,6 +5,7 @@
 #include <coordination_algorithms/ects.hpp>
 #include <tf/transform_listener.h>
 #include <generic_control_toolbox/controller_template.hpp>
+#include <generic_control_toolbox/controller_action_node.hpp>
 #include <coordination_experiments/CoordinationControllerAction.h>
 
 const int LEFT = 0, RIGHT = 1;
@@ -31,6 +32,9 @@ namespace coordination_experiments
     std::map<int, KDL::Frame> obj_in_eef_;
     std::map<int, std::string> eef_frame_, obj_frame_;
     std::map<int, unsigned int> num_joints_;
+    double max_joint_pos_error_;
+    Eigen::VectorXd target_joint_positions_;
+    bool newGoal_;
 
     /**
       Initialize experiment parameters. This will set up rigid transforms between the

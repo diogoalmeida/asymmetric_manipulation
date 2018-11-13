@@ -2,7 +2,12 @@
 
 namespace coordination_algorithms
 {
-  ECTS::ECTS() : AlgorithmBase() {}
+  ECTS::ECTS() : AlgorithmBase()
+  {
+    // TODO: Parameters
+    alpha_ = 0.5;
+    damping_ = 0.0001;
+  }
 
   Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
   {
@@ -32,10 +37,6 @@ namespace coordination_algorithms
 
     q_dot = J.transpose()*damped_inverse.colPivHouseholderQr().solve(total_twist);
 
-    // TODO: Parameters
-    alpha_ = 0.5;
-    damping_ = 0.0001;
-
     return q_dot;
   }
 
@@ -56,7 +57,7 @@ namespace coordination_algorithms
     W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
     W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
 
-    J = Eigen::MatrixXd::Zero(J1_kdl.columns(), J2_kdl.columns());
+    J = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
     J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
     J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
 

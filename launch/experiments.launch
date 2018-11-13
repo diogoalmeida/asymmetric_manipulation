@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen">
+    <remap from="joint_states" to="/robot/joint_states"/>
+    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+  </node>
+</launch>

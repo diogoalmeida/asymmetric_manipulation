@@ -20,7 +20,19 @@ namespace coordination_experiments
     sensor_msgs::JointState ret = current_state;
     KDL::Frame p1, obj1, p2, obj2;
     KDL::Vector rel_perr, abs_perr;
+    Eigen::VectorXd q1, q2;
     double x, y, z, w;
+
+    alg_->kdl_manager_->getJointPositions(alg_->eef1_, current_state, q1);
+    alg_->kdl_manager_->getJointPositions(alg_->eef2_, current_state, q2);
+
+    if (newGoal_)
+    {
+      target_joint_positions_ = Eigen::MatrixXd::Zero(num_joints_[LEFT] + num_joints_[RIGHT], 1);
+      target_joint_positions_.block(0, 0, num_joints_[LEFT], 1) = q1;
+      target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1) = q2;
+    }
+
     alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, current_state, p1);
     alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, current_state, p2);
 
@@ -43,17 +55,34 @@ namespace coordination_experiments
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
-    rel_perr = obj2.p - obj1.p;
+    rel_perr = -obj2.p + obj1.p;
     rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = relative_orientation * quat_err.vec();
+    rel_twist.block<3,1>(3,0) = relative_orientation * quat_err.inverse().vec();
 
     Eigen::Vector3d r1, r2;
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
     tf::vectorKDLToEigen(obj1.p - p1.p, r1);
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
     Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, rel_twist);
-    alg_->kdl_manager_->getJointState(alg_->eef1_, joint_velocities.block(0, 0, num_joints_[LEFT], 0), ret);
-    alg_->kdl_manager_->getJointState(alg_->eef2_, joint_velocities.block(0, 0, num_joints_[RIGHT], 0), ret);
+
+    for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
+    {
+      if (std::abs(target_joint_positions_(i) - q1(i)) < max_joint_pos_error_)
+      {
+        target_joint_positions_(i) += joint_velocities(i)*dt.toSec();
+      }
+    }
+
+    for (unsigned int i = 0; i < num_joints_[RIGHT]; i++)
+    {
+      if (std::abs(target_joint_positions_(num_joints_[LEFT] + i) - q2(i)) < max_joint_pos_error_)
+      {
+        target_joint_positions_(num_joints_[LEFT] + i) += joint_velocities(num_joints_[LEFT] + i)*dt.toSec();
+      }
+    }
+
+    alg_->kdl_manager_->getJointState(alg_->eef1_, target_joint_positions_.block(0, 0, num_joints_[LEFT], 1), joint_velocities.block(0, 0, num_joints_[LEFT], 1), ret);
+    alg_->kdl_manager_->getJointState(alg_->eef2_, target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), joint_velocities.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), ret);
 
     return ret;
   }
@@ -80,12 +109,14 @@ namespace coordination_experiments
       return false;
     }
 
+    ROS_INFO("Coordination controller received a valid goal!");
+    newGoal_ = true;
     return true;
   }
 
   void CoordinationController::resetController()
   {
-
+    newGoal_ = true;
   }
 
   bool CoordinationController::init()
@@ -95,6 +126,12 @@ namespace coordination_experiments
     if (!nh_.getParam("max_tf_attempts", max_tf_attempts))
     {
       ROS_ERROR("Missing max_tf_attemps parameter.");
+      return false;
+    }
+
+    if (!nh_.getParam("max_joint_pos_error", max_joint_pos_error_))
+    {
+      ROS_ERROR("Missing max_joint_pos_error parameter");
       return false;
     }
 
@@ -162,11 +199,17 @@ namespace coordination_experiments
     }
     tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[RIGHT]);
 
+    newGoal_ = true;
     return true;
   }
 }
 
 int main(int argc, char **argv)
 {
+  ros::init(argc, argv, "coordination_controller");
+  coordination_experiments::CoordinationController controller("coordination_control");
+  generic_control_toolbox::ControllerActionNode action_node;
 
+  action_node.runController(controller);
+  return 0;
 }
