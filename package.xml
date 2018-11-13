@@ -14,4 +14,5 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>generic_control_toolbox</depend>
+  <depend>actionlib_msgs</depend>
 </package>
