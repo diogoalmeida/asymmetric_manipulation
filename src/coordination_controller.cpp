@@ -49,33 +49,30 @@ namespace coordination_experiments
     // Compute the angular component of the relative twist: orientation error in quaternion form, angular error
     // will be the vector part of the error, converted to the relative frame
     obj1.M.GetQuaternion(x, y, z, w);
-    Eigen::Quaterniond obj1_rot(w, x, y, z);
     obj1_transform.setRotation(tf::Quaternion(x, y, z, w));
     obj2.M.GetQuaternion(x, y, z, w);
-    Eigen::Quaterniond obj2_rot(w, x, y, z);
     obj2_transform.setRotation(tf::Quaternion(x, y, z, w));
 
-    broadcaster_.sendTransform(tf::StampedTransform(obj1_transform, ros::Time::now(), "torso", "obj1"));
-    broadcaster_.sendTransform(tf::StampedTransform(obj2_transform, ros::Time::now(), "torso", "obj2"));
+    broadcaster_.sendTransform(tf::StampedTransform(obj1_transform, ros::Time::now(), "torso", "obj1_debug"));
+    broadcaster_.sendTransform(tf::StampedTransform(obj2_transform, ros::Time::now(), "torso", "obj2_debug"));
 
-    Eigen::Quaterniond quat_err = obj2_rot; // quaternion error
     Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
     tf::transformKDLToEigen(obj1, obj1_eig);
     tf::transformKDLToEigen(obj2, obj2_eig);
     Eigen::Matrix3d relative_orientation = obj1_eig.linear().transpose()*obj2_eig.linear();
+    Eigen::Quaterniond quat_err(relative_orientation);
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
     rel_perr = (-obj2.p + obj1.p);
     rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = 0*quat_err.vec();
+    rel_twist.block<3,1>(3,0) = obj1_eig.linear()*quat_err.inverse().vec();
 
     Eigen::Vector3d r1, r2;
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
     tf::vectorKDLToEigen(obj1.p - p1.p, r1);
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
     Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, rel_twist);
-
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {
@@ -147,8 +144,32 @@ namespace coordination_experiments
       return false;
     }
 
+    if (!nh_.getParam("eef1/kdl_eef_frame", eef_frame_[LEFT]))
+    {
+      ROS_ERROR("Missing left_eef_frame parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("left_obj_frame", obj_frame_[LEFT]))
+    {
+      ROS_ERROR("Missing left_obj_frame parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("eef2/kdl_eef_frame", eef_frame_[RIGHT]))
+    {
+      ROS_ERROR("Missing right_eef_frame parameter");
+      return false;
+    }
+
+    if (!nh_.getParam("right_obj_frame", obj_frame_[RIGHT]))
+    {
+      ROS_ERROR("Missing right_obj_frame parameter");
+      return false;
+    }
+
     geometry_msgs::PoseStamped object_pose;
-    object_pose.header.frame_id = eef_frame_[LEFT];
+    object_pose.header.frame_id = obj_frame_[LEFT];
     object_pose.header.stamp = ros::Time(0);
     object_pose.pose.position.x = 0;
     object_pose.pose.position.y = 0;
