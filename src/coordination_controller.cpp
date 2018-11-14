@@ -190,7 +190,7 @@ namespace coordination_experiments
       catch (tf::TransformException ex)
       {
         ROS_WARN("TF exception in coordination controller: %s", ex.what());
-        ros::Duration(0.01).sleep();
+        ros::Duration(0.1).sleep();
       }
     }
 
@@ -221,7 +221,7 @@ namespace coordination_experiments
       catch (tf::TransformException ex)
       {
         ROS_WARN("TF exception in coordination controller: %s", ex.what());
-        ros::Duration(0.01).sleep();
+        ros::Duration(0.1).sleep();
       }
     }
 
