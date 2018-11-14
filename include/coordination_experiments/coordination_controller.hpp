@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <coordination_algorithms/ects.hpp>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 #include <generic_control_toolbox/controller_template.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <coordination_experiments/CoordinationControllerAction.h>
@@ -28,6 +29,7 @@ namespace coordination_experiments
   private:
     ros::NodeHandle nh_;
     tf::TransformListener listener_;
+    tf::TransformBroadcaster broadcaster_;
     std::shared_ptr<coordination_algorithms::AlgorithmBase> alg_;
     std::map<int, KDL::Frame> obj_in_eef_;
     std::map<int, std::string> eef_frame_, obj_frame_;

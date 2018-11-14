@@ -31,6 +31,7 @@ namespace coordination_experiments
       target_joint_positions_ = Eigen::MatrixXd::Zero(num_joints_[LEFT] + num_joints_[RIGHT], 1);
       target_joint_positions_.block(0, 0, num_joints_[LEFT], 1) = q1;
       target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1) = q2;
+      newGoal_ = false;
     }
 
     alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, current_state, p1);
@@ -40,14 +41,24 @@ namespace coordination_experiments
     obj1 = p1*obj_in_eef_[LEFT];
     obj2 = p2*obj_in_eef_[RIGHT];
 
+    // DEBUG: publish converted object frames
+    tf::Transform obj1_transform, obj2_transform;
+    obj1_transform.setOrigin(tf::Vector3(obj1.p.x(), obj1.p.y(), obj1.p.z()));
+    obj2_transform.setOrigin(tf::Vector3(obj2.p.x(), obj2.p.y(), obj2.p.z()));
+
     // Compute the angular component of the relative twist: orientation error in quaternion form, angular error
     // will be the vector part of the error, converted to the relative frame
     obj1.M.GetQuaternion(x, y, z, w);
     Eigen::Quaterniond obj1_rot(w, x, y, z);
+    obj1_transform.setRotation(tf::Quaternion(x, y, z, w));
     obj2.M.GetQuaternion(x, y, z, w);
     Eigen::Quaterniond obj2_rot(w, x, y, z);
+    obj2_transform.setRotation(tf::Quaternion(x, y, z, w));
 
-    Eigen::Quaterniond quat_err = obj1_rot.inverse()*obj2_rot; // quaternion error
+    broadcaster_.sendTransform(tf::StampedTransform(obj1_transform, ros::Time::now(), "torso", "obj1"));
+    broadcaster_.sendTransform(tf::StampedTransform(obj2_transform, ros::Time::now(), "torso", "obj2"));
+
+    Eigen::Quaterniond quat_err = obj2_rot; // quaternion error
     Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
     tf::transformKDLToEigen(obj1, obj1_eig);
     tf::transformKDLToEigen(obj2, obj2_eig);
@@ -55,15 +66,16 @@ namespace coordination_experiments
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
-    rel_perr = -obj2.p + obj1.p;
+    rel_perr = (-obj2.p + obj1.p);
     rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = relative_orientation * quat_err.inverse().vec();
+    rel_twist.block<3,1>(3,0) = 0*quat_err.vec();
 
     Eigen::Vector3d r1, r2;
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
     tf::vectorKDLToEigen(obj1.p - p1.p, r1);
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
     Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, rel_twist);
+
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {
