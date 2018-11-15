@@ -8,6 +8,7 @@
 #include <generic_control_toolbox/controller_template.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <coordination_experiments/CoordinationControllerAction.h>
+#include <std_srvs/Empty.h>
 
 const int LEFT = 0, RIGHT = 1;
 namespace coordination_experiments
@@ -38,6 +39,8 @@ namespace coordination_experiments
     Eigen::VectorXd target_joint_positions_;
     Eigen::MatrixXd Kp_r_;
     bool newGoal_;
+    int max_tf_attempts_;
+    ros::ServiceClient reset_client_;
 
     /**
       Initialize experiment parameters. This will set up rigid transforms between the

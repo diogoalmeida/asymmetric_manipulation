@@ -6,7 +6,7 @@ namespace coordination_algorithms
   {
     // TODO: Parameters
     alpha_ = 0.5;
-    damping_ = 0.0001;
+    damping_ = 0.01;
   }
 
   Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
