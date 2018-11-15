@@ -5,6 +5,14 @@ loop_rate: 50
 left_obj_frame: obj1
 right_obj_frame: obj2
 
+relative_gain:
+  data: [0.5, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.5, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+
 eef1:
   kdl_eef_frame: left_gripper
   gripping_frame: left_gripper

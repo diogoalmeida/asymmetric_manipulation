@@ -40,6 +40,15 @@ namespace coordination_algorithms
     return q_dot;
   }
 
+  Eigen::Matrix3d ECTS::getRelativeToBase(const KDL::Frame &obj1, const KDL::Frame &obj2) const
+  {
+    Eigen::Affine3d obj1_eig;
+
+    tf::transformKDLToEigen(obj1, obj1_eig);
+
+    return obj1_eig.linear();
+  }
+
   Eigen::MatrixXd ECTS::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
     Matrix12d L = Matrix12d::Zero(), W = Matrix12d::Identity();

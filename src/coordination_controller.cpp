@@ -59,20 +59,21 @@ namespace coordination_experiments
     Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
     tf::transformKDLToEigen(obj1, obj1_eig);
     tf::transformKDLToEigen(obj2, obj2_eig);
-    Eigen::Matrix3d relative_orientation = obj1_eig.linear().transpose()*obj2_eig.linear();
-    Eigen::Quaterniond quat_err(relative_orientation);
+    Eigen::Matrix3d relative_error = obj1_eig.linear().transpose()*obj2_eig.linear(); // Orientation error between the two object frames.
+    Eigen::Matrix3d relative_to_base = alg_->getRelativeToBase(obj1, obj2); // The rotation matrix which converts from R_r to base
+    Eigen::Quaterniond quat_err(relative_error);
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
     rel_perr = (-obj2.p + obj1.p);
     rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = obj1_eig.linear()*quat_err.inverse().vec();
+    rel_twist.block<3,1>(3,0) = relative_to_base*quat_err.inverse().vec(); // The error between frames needs to be converted from the relative motion frame.
 
     Eigen::Vector3d r1, r2;
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
     tf::vectorKDLToEigen(obj1.p - p1.p, r1);
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
-    Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, rel_twist);
+    Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, Kp_r_*rel_twist);
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {
@@ -165,6 +166,17 @@ namespace coordination_experiments
     if (!nh_.getParam("right_obj_frame", obj_frame_[RIGHT]))
     {
       ROS_ERROR("Missing right_obj_frame parameter");
+      return false;
+    }
+
+    if (!generic_control_toolbox::MatrixParser::parseMatrixData(Kp_r_, "relative_gain", nh_))
+    {
+      return false;
+    }
+
+    if (Kp_r_.cols() != 6)
+    {
+      ROS_ERROR("Invalid relative gain dimensions. Must be 6x6");
       return false;
     }
 

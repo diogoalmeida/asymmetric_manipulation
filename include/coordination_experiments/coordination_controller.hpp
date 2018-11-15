@@ -36,6 +36,7 @@ namespace coordination_experiments
     std::map<int, unsigned int> num_joints_;
     double max_joint_pos_error_;
     Eigen::VectorXd target_joint_positions_;
+    Eigen::MatrixXd Kp_r_;
     bool newGoal_;
 
     /**

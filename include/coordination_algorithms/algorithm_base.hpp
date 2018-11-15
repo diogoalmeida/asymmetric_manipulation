@@ -36,9 +36,19 @@ namespace coordination_algorithms
       @returns The resolved joint velocities for the two manipulators.
     **/
     virtual Eigen::VectorXd control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist) = 0;
+
+    /**
+      Compute a rotation matrix which converts from the relative motion frame to the base frame.
+      The coordinated frames are based on frames rigidly attached to the end-effectors and specified
+      by the user.
+
+      @param obj1 Object frame rigidly attached to eef1.
+      @param obj2 Object frame rigidly attached to eef2.
+    **/
+    virtual Eigen::Matrix3d getRelativeToBase(const KDL::Frame &obj1, const KDL::Frame &obj2) const = 0;
+
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::string eef1_, eef2_;
-
   protected:
     ros::NodeHandle nh_;
     std::string base_;
