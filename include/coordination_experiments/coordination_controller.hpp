@@ -39,6 +39,7 @@ namespace coordination_experiments
     double max_joint_pos_error_;
     Eigen::VectorXd target_joint_positions_;
     Eigen::MatrixXd Kp_r_;
+    Eigen::VectorXd q1_init_, q2_init_;
     bool newGoal_;
     int max_tf_attempts_;
     ros::ServiceClient reset_client_;

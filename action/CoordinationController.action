@@ -1,7 +1,10 @@
 int32 controller
+float64 abs_alpha
+float64 rel_alpha
 
 int32 RESET = 0
 int32 ECTS = 1
 int32 RELJAC = 2
 ---
 ---
+float64 joint_space_norm

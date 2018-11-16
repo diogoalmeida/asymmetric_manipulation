@@ -28,6 +28,8 @@ namespace coordination_experiments
 
     if (newGoal_)
     {
+      q1_init_ = q1;
+      q2_init_ = q2;
       target_joint_positions_ = Eigen::MatrixXd::Zero(num_joints_[LEFT] + num_joints_[RIGHT], 1);
       target_joint_positions_.block(0, 0, num_joints_[LEFT], 1) = q1;
       target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1) = q2;
@@ -60,14 +62,13 @@ namespace coordination_experiments
     tf::transformKDLToEigen(obj1, obj1_eig);
     tf::transformKDLToEigen(obj2, obj2_eig);
     Eigen::Matrix3d relative_error = obj1_eig.linear().transpose()*obj2_eig.linear(); // Orientation error between the two object frames.
-    Eigen::Matrix3d relative_to_base = alg_->getRelativeToBase(obj1, obj2); // The rotation matrix which converts from R_r to base
     Eigen::Quaterniond quat_err(relative_error);
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
     rel_perr = (-obj2.p + obj1.p);
     rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = relative_to_base*quat_err.inverse().vec(); // The error between frames needs to be converted from the relative motion frame.
+    rel_twist.block<3,1>(3,0) = obj1_eig.linear()*quat_err.inverse().vec(); // The error between frames needs to be converted to the base frame.
 
     Eigen::Vector3d r1, r2;
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
@@ -91,6 +92,8 @@ namespace coordination_experiments
       }
     }
 
+    feedback_.joint_space_norm = (q1_init_ - q1).norm() + (q2_init_ - q2).norm();
+
     alg_->kdl_manager_->getJointState(alg_->eef1_, target_joint_positions_.block(0, 0, num_joints_[LEFT], 1), joint_velocities.block(0, 0, num_joints_[LEFT], 1), ret);
     alg_->kdl_manager_->getJointState(alg_->eef2_, target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), joint_velocities.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), ret);
 
@@ -99,9 +102,10 @@ namespace coordination_experiments
 
   bool CoordinationController::parseGoal(boost::shared_ptr<const CoordinationControllerGoal> goal)
   {
+    std_srvs::Empty srv;
+
     if (goal->controller == goal->RESET)
     {
-      std_srvs::Empty srv;
       if (reset_client_.call(srv))
       {
         action_server_->setSucceeded();
@@ -114,10 +118,20 @@ namespace coordination_experiments
     }
     else if (goal->controller == goal->ECTS)
     {
+      if (!reset_client_.call(srv))
+      {
+        return false;
+      }
+
       alg_ = std::make_shared<coordination_algorithms::ECTS>();
     }
     else if (goal->controller == goal->RELJAC)
     {
+      if (!reset_client_.call(srv))
+      {
+        return false;
+      }
+
       alg_ = std::make_shared<coordination_algorithms::ExtRelJac>();
     }
     else
@@ -125,6 +139,19 @@ namespace coordination_experiments
       ROS_ERROR_STREAM("Unknown controller: " << goal->controller);
       return false;
     }
+
+    if (goal->abs_alpha < 0 || goal->abs_alpha > 1)
+    {
+      ROS_ERROR("Abs alpha must be between 0 and 1");
+    }
+
+    if (goal->rel_alpha < 0 || goal->rel_alpha >1)
+    {
+      ROS_ERROR("Rel alpha must be between 0 and 1");
+    }
+
+    alg_->setAbsoluteAlpha(goal->abs_alpha);
+    alg_->setRelativeAlpha(goal->rel_alpha);
 
     if (!alg_->kdl_manager_->getNumJoints(alg_->eef1_, num_joints_[LEFT]))
     {
@@ -202,6 +229,7 @@ namespace coordination_experiments
 
     ROS_INFO("Coordination controller received a valid goal!");
     newGoal_ = true;
+    feedback_.joint_space_norm = 0.0;
     return true;
   }
 

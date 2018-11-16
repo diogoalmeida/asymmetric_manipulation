@@ -15,7 +15,6 @@ namespace coordination_algorithms
     ~ECTS() {}
 
     Eigen::VectorXd control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist);
-    Eigen::Matrix3d getRelativeToBase(const KDL::Frame &obj1, const KDL::Frame &obj2) const;
 
   private:
     /**

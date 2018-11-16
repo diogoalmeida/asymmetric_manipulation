@@ -2,12 +2,7 @@
 
 namespace coordination_algorithms
 {
-  ECTS::ECTS() : AlgorithmBase()
-  {
-    // TODO: Parameters
-    alpha_ = 0.5;
-    damping_ = 0.01;
-  }
+  ECTS::ECTS() : AlgorithmBase() {}
 
   Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
   {
@@ -40,15 +35,6 @@ namespace coordination_algorithms
     return q_dot;
   }
 
-  Eigen::Matrix3d ECTS::getRelativeToBase(const KDL::Frame &obj1, const KDL::Frame &obj2) const
-  {
-    Eigen::Affine3d obj1_eig;
-
-    tf::transformKDLToEigen(obj1, obj1_eig);
-
-    return obj1_eig.linear();
-  }
-
   Eigen::MatrixXd ECTS::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
     Matrix12d L = Matrix12d::Zero(), W = Matrix12d::Identity();
@@ -58,8 +44,8 @@ namespace coordination_algorithms
     kdl_manager_->getJacobian(eef1_, state, J1_kdl);
     kdl_manager_->getJacobian(eef2_, state, J2_kdl);
 
-    L.block<6,6>(0,0) = alpha_*Matrix6d::Identity();
-    L.block<6,6>(0,6) = (1 - alpha_)*Matrix6d::Identity();
+    L.block<6,6>(0,0) = abs_alpha_*Matrix6d::Identity();
+    L.block<6,6>(0,6) = (1 - abs_alpha_)*Matrix6d::Identity();
     L.block<6,6>(6,0) = -Matrix6d::Identity();
     L.block<6,6>(6,6) = Matrix6d::Identity();
 

@@ -2,10 +2,8 @@
 
 namespace coordination_algorithms
 {
-  AlgorithmBase::AlgorithmBase()
+  AlgorithmBase::AlgorithmBase() : nh_("~"), rel_alpha_(0.5), abs_alpha_(0.5), damping_(0.0001)
   {
-    nh_ = ros::NodeHandle("~");
-
     if (!init())
     {
       throw std::logic_error("Missing parameters for the algorithm");
