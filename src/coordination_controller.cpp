@@ -255,7 +255,7 @@ namespace coordination_experiments
       return false;
     }
 
-    reset_client_ = nh_.serviceClient<std_srvs::Empty>("/msg_conversion_node/msg_conversion_reset");
+    reset_client_ = nh_.serviceClient<std_srvs::Empty>("/state_reset");
 
     newGoal_ = true;
     return true;
