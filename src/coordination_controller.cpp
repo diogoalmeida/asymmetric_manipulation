@@ -112,9 +112,13 @@ namespace coordination_experiments
         return false;
       }
     }
-    if (goal->controller == goal->ECTS)
+    else if (goal->controller == goal->ECTS)
     {
       alg_ = std::make_shared<coordination_algorithms::ECTS>();
+    }
+    else if (goal->controller == goal->RELJAC)
+    {
+      alg_ = std::make_shared<coordination_algorithms::ExtRelJac>();
     }
     else
     {

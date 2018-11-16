@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <coordination_algorithms/ects.hpp>
+#include <coordination_algorithms/ext_rel_jac.hpp>
 #include <tf/transform_listener.h>
 #include <tf/transform_broadcaster.h>
 #include <generic_control_toolbox/controller_template.hpp>

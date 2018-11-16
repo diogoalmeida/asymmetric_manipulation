@@ -38,6 +38,10 @@ add_library(ects src/ects.cpp src/algorithm_base.cpp)
 target_link_libraries(ects ${catkin_LIBRARIES})
 add_dependencies(ects ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 
+add_library(ext_rel_jac src/ext_rel_jac.cpp src/algorithm_base.cpp)
+target_link_libraries(ext_rel_jac ${catkin_LIBRARIES})
+add_dependencies(ext_rel_jac ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+
 add_executable(coordination_controller src/coordination_controller.cpp)
-target_link_libraries(coordination_controller ects ${catkin_LIBRARIES})
+target_link_libraries(coordination_controller ects ext_rel_jac ${catkin_LIBRARIES})
 add_dependencies(coordination_controller ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
