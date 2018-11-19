@@ -76,6 +76,18 @@ namespace coordination_experiments
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
     Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, Kp_r_*rel_twist);
 
+    Eigen::Matrix<double, 6, 1> meas_abs_twist, meas_rel_twist;
+    alg_->getAbsoluteVelocity(current_state, r1, r2, meas_abs_twist);
+    alg_->getRelativeVelocity(current_state, r1, r2, meas_rel_twist);
+
+    feedback_.absolute_velocity.clear();
+    feedback_.relative_velocity.clear();
+    for (unsigned int i = 0; i < 6; i++)
+    {
+      feedback_.absolute_velocity.push_back(meas_abs_twist[i]);
+      feedback_.relative_velocity.push_back(meas_rel_twist[i]);
+    }
+
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {
       if (std::abs(target_joint_positions_(i) - q1(i)) < max_joint_pos_error_)

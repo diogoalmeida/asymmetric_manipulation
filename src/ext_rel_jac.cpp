@@ -31,6 +31,58 @@ namespace coordination_algorithms
     return q_dot;
   }
 
+  void ExtRelJac::getAbsoluteVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &abs_vel) const
+  {
+    KDL::Twist v1_eef, v2_eef;
+    Vector6d v1_eef_eig, v2_eef_eig, v1, v2;
+    Vector12d total_twist;
+    Eigen::Matrix<double, 6, 12> absL = Eigen::Matrix<double, 6, 12>::Zero();
+    Matrix12d W = Matrix12d::Identity();
+    kdl_manager_->getGrippingTwist(eef1_, state, v1_eef);
+    kdl_manager_->getGrippingTwist(eef2_, state, v2_eef);
+
+    tf::twistKDLToEigen(v1_eef, v1_eef_eig);
+    tf::twistKDLToEigen(v2_eef, v2_eef_eig);
+
+    total_twist.block<6,1>(0, 0) = v1_eef_eig;
+    total_twist.block<6,1>(6, 0) = v2_eef_eig;
+
+    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
+    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
+
+    absL.block<6,6>(0, 0) = abs_alpha_*Matrix6d::Identity();
+    absL.block<6,6>(0, 6) = (1 - abs_alpha_)*Matrix6d::Identity();
+
+    abs_vel = absL*W*total_twist;
+  }
+
+  void ExtRelJac::getRelativeVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &rel_vel) const
+  {
+    KDL::Twist v1_eef, v2_eef;
+    Vector6d v1_eef_eig, v2_eef_eig, v1, v2;
+    Vector12d total_twist;
+    Eigen::Matrix<double, 6, 12> relL = Eigen::Matrix<double, 6, 12>::Zero();
+    Matrix12d W = Matrix12d::Identity();
+    kdl_manager_->getGrippingTwist(eef1_, state, v1_eef);
+    kdl_manager_->getGrippingTwist(eef2_, state, v2_eef);
+
+    tf::twistKDLToEigen(v1_eef, v1_eef_eig);
+    tf::twistKDLToEigen(v2_eef, v2_eef_eig);
+
+    total_twist.block<6,1>(0, 0) = v1_eef_eig;
+    total_twist.block<6,1>(6, 0) = v2_eef_eig;
+
+    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
+    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
+
+    relL.block<6,6>(0, 0) = -(1 - rel_alpha_)*Matrix6d::Identity();
+    relL.block<6,6>(0, 6) = rel_alpha_*Matrix6d::Identity();
+
+    relL = 1/((1-rel_alpha_)*(1-rel_alpha_) + rel_alpha_*rel_alpha_) * relL;
+
+    rel_vel = relL*W*total_twist;
+  }
+
   Eigen::MatrixXd ExtRelJac::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
     Matrix12d W = Matrix12d::Identity();

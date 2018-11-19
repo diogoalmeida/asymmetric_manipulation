@@ -37,8 +37,11 @@ namespace coordination_algorithms
     **/
     virtual Eigen::VectorXd control(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist) = 0;
 
-    void setRelativeAlpha(double alpha) {abs_alpha_ = alpha;}
-    void setAbsoluteAlpha(double alpha) {rel_alpha_ = alpha;}
+    virtual void getAbsoluteVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &abs_vel) const = 0;
+    virtual void getRelativeVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &rel_vel) const = 0;
+
+    void setRelativeAlpha(double alpha) {rel_alpha_ = alpha;}
+    void setAbsoluteAlpha(double alpha) {abs_alpha_ = alpha;}
 
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::string eef1_, eef2_;
