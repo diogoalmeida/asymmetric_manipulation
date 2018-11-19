@@ -104,7 +104,12 @@ namespace coordination_experiments
       }
     }
 
-    feedback_.joint_space_norm = (q1_init_ - q1).norm() + (q2_init_ - q2).norm();
+    Eigen::VectorXd q_init_total = Eigen::VectorXd::Zero(q1.rows() + q2.rows(), 1), q_total = Eigen::VectorXd::Zero(q1.rows() + q2.rows(), 1);
+    q_init_total.block(0,0,q1.rows(),1) = q1_init_;
+    q_init_total.block(q1.rows(),0,q2.rows(),1) = q2_init_;
+    q_total.block(0,0,q1.rows(),1) = q1;
+    q_total.block(q1.rows(),0,q2.rows(),1) = q2;
+    feedback_.joint_space_norm = (q_init_total - q_total).norm();
 
     alg_->kdl_manager_->getJointState(alg_->eef1_, target_joint_positions_.block(0, 0, num_joints_[LEFT], 1), joint_velocities.block(0, 0, num_joints_[LEFT], 1), ret);
     alg_->kdl_manager_->getJointState(alg_->eef2_, target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), joint_velocities.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), ret);
