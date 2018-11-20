@@ -157,6 +157,9 @@ namespace coordination_experiments
       return false;
     }
 
+    ros::Duration(0.1).sleep(); // let the controller get the updated simulation joint state
+    ros::spinOnce();
+
     if (goal->abs_alpha < 0 || goal->abs_alpha > 1)
     {
       ROS_ERROR("Abs alpha must be between 0 and 1");
