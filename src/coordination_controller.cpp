@@ -163,11 +163,13 @@ namespace coordination_experiments
     if (goal->abs_alpha < 0 || goal->abs_alpha > 1)
     {
       ROS_ERROR("Abs alpha must be between 0 and 1");
+      return false;
     }
 
     if (goal->rel_alpha < 0 || goal->rel_alpha >1)
     {
       ROS_ERROR("Rel alpha must be between 0 and 1");
+      return false;
     }
 
     alg_->setAbsoluteAlpha(goal->abs_alpha);
