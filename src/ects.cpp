@@ -41,7 +41,7 @@ namespace coordination_algorithms
     Vector6d v1_eef_eig, v2_eef_eig, v1, v2;
     Vector12d total_twist;
     Eigen::Matrix<double, 6, 12> absL = Eigen::Matrix<double, 6, 12>::Zero();
-    Matrix12d W = Matrix12d::Identity();
+    Matrix12d W = computeW(r1, r2);
     kdl_manager_->getGrippingTwist(eef1_, state, v1_eef);
     kdl_manager_->getGrippingTwist(eef2_, state, v2_eef);
 
@@ -50,9 +50,6 @@ namespace coordination_algorithms
 
     total_twist.block<6,1>(0, 0) = v1_eef_eig;
     total_twist.block<6,1>(6, 0) = v2_eef_eig;
-
-    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
-    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
 
     absL.block<6,6>(0, 0) = abs_alpha_*Matrix6d::Identity();
     absL.block<6,6>(0, 6) = (1 - abs_alpha_)*Matrix6d::Identity();
@@ -66,7 +63,7 @@ namespace coordination_algorithms
     Vector6d v1_eef_eig, v2_eef_eig, v1, v2;
     Vector12d total_twist;
     Eigen::Matrix<double, 6, 12> relL = Eigen::Matrix<double, 6, 12>::Zero();
-    Matrix12d W = Matrix12d::Identity();
+    Matrix12d W = computeW(r1, r2);
     kdl_manager_->getGrippingTwist(eef1_, state, v1_eef);
     kdl_manager_->getGrippingTwist(eef2_, state, v2_eef);
 
@@ -76,9 +73,6 @@ namespace coordination_algorithms
     total_twist.block<6,1>(0, 0) = v1_eef_eig;
     total_twist.block<6,1>(6, 0) = v2_eef_eig;
 
-    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
-    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
-
     relL.block<6,6>(0, 0) = -Matrix6d::Identity();
     relL.block<6,6>(0, 6) = Matrix6d::Identity();
 
@@ -87,7 +81,7 @@ namespace coordination_algorithms
 
   Eigen::MatrixXd ECTS::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
-    Matrix12d L = Matrix12d::Zero(), W = Matrix12d::Identity();
+    Matrix12d L = Matrix12d::Zero(), W = computeW(r1, r2);
     Eigen::MatrixXd J_e, J;
     KDL::Jacobian J1_kdl, J2_kdl;
 
@@ -98,9 +92,6 @@ namespace coordination_algorithms
     L.block<6,6>(0,6) = (1 - abs_alpha_)*Matrix6d::Identity();
     L.block<6,6>(6,0) = -Matrix6d::Identity();
     L.block<6,6>(6,6) = Matrix6d::Identity();
-
-    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
-    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
 
     J = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
     J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;

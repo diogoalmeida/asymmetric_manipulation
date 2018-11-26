@@ -65,6 +65,15 @@ namespace coordination_algorithms
       @returns True in case of success, False otherwise.
     **/
     bool setArm(const std::string &arm_name, std::string &eef_name);
+
+    /**
+      Compute the wrench conversion matrix which maps twists in the task frames to
+      eef twists.
+
+      @param r1 Virtual stick connecting eef1 to its corresponding task frame.
+      @param r2 Virtual stick connecting eef2 to its corresponding task frame.
+    **/
+    Matrix12d computeW(const Vector3d &r1, const Vector3d &r2) const;
   };
 }
 

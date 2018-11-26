@@ -51,4 +51,14 @@ namespace coordination_algorithms
 
     return true;
   }
+
+  Matrix12d AlgorithmBase::computeW(const Vector3d &r1, const Vector3d &r2) const
+  {
+    Matrix12d W = Matrix12d::Identity();
+
+    W.block<3,3>(0,3) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r1);
+    W.block<3,3>(6,9) = -generic_control_toolbox::MatrixParser::computeSkewSymmetric(r2);
+
+    return W;
+  }
 }
