@@ -56,6 +56,8 @@ namespace coordination_algorithms
 
     void setRelativeAlpha(double alpha) {rel_alpha_ = alpha;}
     void setAbsoluteAlpha(double alpha) {abs_alpha_ = alpha;}
+    double getRelativeAlpha() const {return rel_alpha_;}
+    double getAbsoluteAlpha() const {return abs_alpha_;}
 
     std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
     std::string eef1_, eef2_;
