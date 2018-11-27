@@ -5,6 +5,7 @@
 #include <coordination_algorithms/ects.hpp>
 #include <coordination_algorithms/ext_rel_jac.hpp>
 #include <tf/transform_listener.h>
+#include <tf_conversions/tf_kdl.h>
 #include <tf/transform_broadcaster.h>
 #include <generic_control_toolbox/controller_template.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>

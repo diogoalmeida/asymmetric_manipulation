@@ -24,7 +24,7 @@ namespace coordination_algorithms
 
     J = computeJacobian(state, r1 + p1_eig.translation() - eef1_eig.translation(), r2 + p2_eig.translation() - eef2_eig.translation());
 
-    damped_inverse = (J*J.transpose() + damping_*Matrix12d::Identity());
+    damped_inverse = (J*J.transpose() + damping_*Matrix6d::Identity());
 
     q_dot = J.transpose()*damped_inverse.colPivHouseholderQr().solve(rel_twist);
 

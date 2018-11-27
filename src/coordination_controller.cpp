@@ -44,25 +44,26 @@ namespace coordination_experiments
     obj2 = p2*obj_in_eef_[RIGHT];
 
     // DEBUG: publish converted object frames
-    tf::Transform obj1_transform, obj2_transform;
-    obj1_transform.setOrigin(tf::Vector3(obj1.p.x(), obj1.p.y(), obj1.p.z()));
-    obj2_transform.setOrigin(tf::Vector3(obj2.p.x(), obj2.p.y(), obj2.p.z()));
-
-    // Compute the angular component of the relative twist: orientation error in quaternion form, angular error
-    // will be the vector part of the error, converted to the relative frame
-    obj1.M.GetQuaternion(x, y, z, w);
-    obj1_transform.setRotation(tf::Quaternion(x, y, z, w));
-    obj2.M.GetQuaternion(x, y, z, w);
-    obj2_transform.setRotation(tf::Quaternion(x, y, z, w));
+    tf::Transform obj1_transform, obj2_transform, abs_transform, rel_transform;
+    KDL::Frame abs_frame, rel_frame;
+    abs_frame = alg_->getAbsoluteMotionFrame(obj1, obj2);
+    rel_frame = alg_->getRelativeMotionFrame(obj1, obj2);
+    tf::transformKDLToTF(obj1, obj1_transform);
+    tf::transformKDLToTF(obj2, obj2_transform);
+    tf::transformKDLToTF(abs_frame, abs_transform);
+    tf::transformKDLToTF(rel_frame, rel_transform);
 
     broadcaster_.sendTransform(tf::StampedTransform(obj1_transform, ros::Time::now(), "torso", "obj1_debug"));
     broadcaster_.sendTransform(tf::StampedTransform(obj2_transform, ros::Time::now(), "torso", "obj2_debug"));
+    broadcaster_.sendTransform(tf::StampedTransform(abs_transform, ros::Time::now(), "torso", "absolute_frame"));
+    broadcaster_.sendTransform(tf::StampedTransform(rel_transform, ros::Time::now(), "torso", "relative_frame"));
 
     Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
     tf::transformKDLToEigen(obj1, obj1_eig);
     tf::transformKDLToEigen(obj2, obj2_eig);
     Eigen::Matrix3d relative_error = obj1_eig.linear().transpose()*obj2_eig.linear(); // Orientation error between the two object frames.
     Eigen::Quaterniond quat_err(relative_error);
+    Eigen::AngleAxisd relative_error_ang_axis(quat_err);
 
     // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
@@ -87,6 +88,9 @@ namespace coordination_experiments
       feedback_.absolute_velocity.push_back(meas_abs_twist[i]);
       feedback_.relative_velocity.push_back(meas_rel_twist[i]);
     }
+
+    feedback_.relative_error_angle = relative_error_ang_axis.angle();
+    feedback_.relative_error_pos = rel_perr.Norm();
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {

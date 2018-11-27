@@ -8,5 +8,7 @@ int32 RELJAC = 2
 ---
 ---
 float64 joint_space_norm
+float64 relative_error_pos
+float64 relative_error_angle
 float64[] absolute_velocity
 float64[] relative_velocity
