@@ -57,6 +57,37 @@ namespace coordination_algorithms
     abs_vel = absL*W*total_twist;
   }
 
+  KDL::Frame ECTS::getAbsoluteMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const
+  {
+    Eigen::Quaterniond obj1_orientation, relative_orientation;
+
+    tf::quaternionKDLToEigen(obj1.M.Inverse()*obj2.M, relative_orientation);
+    tf::quaternionKDLToEigen(obj1.M, obj1_orientation);
+
+    Eigen::AngleAxisd relative_angle_axis(relative_orientation);
+    Eigen::AngleAxisd absolute_angle_axis((1 - abs_alpha_)*relative_angle_axis.angle(), relative_angle_axis.axis());
+
+    Eigen::Quaterniond absolute_orientation(obj1_orientation*absolute_angle_axis);
+
+    KDL::Frame absolute_frame;
+
+    tf::quaternionEigenToKDL(absolute_orientation, absolute_frame.M);
+
+    absolute_frame.p = abs_alpha_*obj1.p + (1 - abs_alpha_)*obj2.p;
+
+    return absolute_frame;
+  }
+
+  KDL::Frame ECTS::getRelativeMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const
+  {
+    KDL::Frame relative_frame;
+
+    relative_frame.M = obj2.M;
+    relative_frame.p = obj1.M*(obj2.p - obj1.p);
+
+    return relative_frame;
+  }
+
   void ECTS::getRelativeVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &rel_vel) const
   {
     KDL::Twist v1_eef, v2_eef;

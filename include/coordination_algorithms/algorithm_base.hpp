@@ -40,6 +40,20 @@ namespace coordination_algorithms
     virtual void getAbsoluteVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &abs_vel) const = 0;
     virtual void getRelativeVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &rel_vel) const = 0;
 
+    /**
+      Get the absolute motion frame implicitly defined by the implemented coordination algorithm.
+
+      @param obj1 The task frame rigidly attached to eef1_.
+      @param obj2 The task frame rigidly attached to eef_2.
+      @returns The computed absolute motion frame.
+    **/
+    virtual KDL::Frame getAbsoluteMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const = 0;
+
+    /**
+      Get the relative motion frame implicitly defined by the implemented coordination algorithm.
+    **/
+    virtual KDL::Frame getRelativeMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const = 0;
+
     void setRelativeAlpha(double alpha) {rel_alpha_ = alpha;}
     void setAbsoluteAlpha(double alpha) {abs_alpha_ = alpha;}
 

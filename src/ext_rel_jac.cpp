@@ -77,6 +77,49 @@ namespace coordination_algorithms
     rel_vel = relL*W*total_twist;
   }
 
+  KDL::Frame ExtRelJac::getAbsoluteMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const
+  {
+    Eigen::Quaterniond obj1_orientation, relative_orientation;
+
+    tf::quaternionKDLToEigen(obj1.M.Inverse()*obj2.M, relative_orientation);
+    tf::quaternionKDLToEigen(obj1.M, obj1_orientation);
+
+    Eigen::AngleAxisd relative_angle_axis(relative_orientation);
+    Eigen::AngleAxisd absolute_angle_axis((1 - abs_alpha_)*relative_angle_axis.angle(), relative_angle_axis.axis());
+
+    Eigen::Quaterniond absolute_orientation(obj1_orientation*absolute_angle_axis);
+
+    KDL::Frame absolute_frame;
+
+    tf::quaternionEigenToKDL(absolute_orientation, absolute_frame.M);
+
+    absolute_frame.p = abs_alpha_*obj1.p + (1 - abs_alpha_)*obj2.p;
+
+    return absolute_frame;
+  }
+
+  KDL::Frame ExtRelJac::getRelativeMotionFrame(const KDL::Frame &obj1, const KDL::Frame &obj2) const
+  {
+    Eigen::Quaterniond obj1_rot, obj2_rot;
+    KDL::Frame relative_frame;
+
+    tf::quaternionKDLToEigen(obj1.M, obj1_rot);
+    tf::quaternionKDLToEigen(obj2.M, obj2_rot);
+
+    Eigen::AngleAxisd obj1_ang_axis(obj1_rot), obj2_ang_axis(obj2_rot);
+    double scaling = 1/((1 - rel_alpha_)*(1 - rel_alpha_) + rel_alpha_*rel_alpha_);
+    Eigen::AngleAxisd new_obj1_ang_axis((1 - rel_alpha_)*scaling*obj1_ang_axis.angle(), obj1_ang_axis.axis()), new_obj2_ang_axis(rel_alpha_*scaling*obj2_ang_axis.angle(), obj2_ang_axis.axis());
+
+    Eigen::Quaterniond relative_orientation(new_obj2_ang_axis), new_obj1_orientation(new_obj1_ang_axis);
+    KDL::Rotation new_obj1_rot;
+
+    tf::quaternionEigenToKDL(relative_orientation, relative_frame.M);
+    tf::quaternionEigenToKDL(new_obj1_orientation, new_obj1_rot);
+    relative_frame.p = new_obj1_rot*(scaling*(rel_alpha_*obj2.p - (1 - rel_alpha_)*obj1.p));
+
+    return relative_frame;
+  }
+
   Eigen::MatrixXd ExtRelJac::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
     Matrix12d W = computeW(r1, r2);
