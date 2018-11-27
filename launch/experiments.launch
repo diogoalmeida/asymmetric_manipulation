@@ -9,5 +9,7 @@
     <remap from="joint_states" to="/robot/joint_states"/>
     <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
   </node>
-  <node pkg="object_server" type="object_server" name="object_server" output="screen"/>
+  <node name="object_server" type="object_server" pkg="object_server" output="screen">
+    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+  </node>
 </launch>
