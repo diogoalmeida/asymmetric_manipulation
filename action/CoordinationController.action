@@ -1,5 +1,6 @@
 coordination_experiments/Controllers control_mode
 coordination_experiments/Inputs input_mode
+float64 max_time
 float64 abs_alpha
 float64 rel_alpha
 

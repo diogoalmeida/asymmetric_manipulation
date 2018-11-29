@@ -124,7 +124,7 @@ namespace coordination_algorithms
   {
     Matrix12d W = computeW(r1, r2);
     double scaling = 1/((1-rel_alpha_)*(1-rel_alpha_) + rel_alpha_*rel_alpha_);
-    Eigen::Matrix<double, 6, 12> L;
+    Eigen::Matrix<double, 6, 12> L = Eigen::Matrix<double, 6, 12>::Zero();
     Eigen::MatrixXd J_r, J;
     KDL::Jacobian J1_kdl, J2_kdl;
 

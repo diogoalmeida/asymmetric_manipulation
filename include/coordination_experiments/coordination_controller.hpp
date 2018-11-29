@@ -38,14 +38,17 @@ namespace coordination_experiments
     std::map<int, KDL::Frame> obj_in_eef_;
     std::map<int, std::string> eef_frame_, obj_frame_;
     std::map<int, unsigned int> num_joints_;
-    double max_joint_pos_error_;
+    double max_joint_pos_error_, max_time_;
     Eigen::VectorXd target_joint_positions_;
     Eigen::MatrixXd Kp_r_;
     Eigen::VectorXd q1_init_, q2_init_;
+    Eigen::Matrix<double, 6, 1> commanded_rel_twist_;
     bool newGoal_;
     int max_tf_attempts_;
     ControlType control_type_;
     ros::ServiceClient reset_client_;
+    ros::Subscriber twist_sub_;
+    ros::Time init_time_;
 
     /**
       Initialize experiment parameters. This will set up rigid transforms between the
@@ -61,6 +64,8 @@ namespace coordination_experiments
     **/
     bool initializeObjectFrames();
 
+    void twistCommandCb(const geometry_msgs::TwistStamped::ConstPtr &msg);
+
     /**
       Compute the relative motion twist for an align task.
     **/
@@ -70,6 +75,13 @@ namespace coordination_experiments
       Compute the virtual sticks for an align task.
     **/
     void computeAlignVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2);
+
+    /**
+      Compute the virtual sticks connecting the end-effectors to the C-Frame where the commanded twist is expressed.
+
+      Assumption: the object frame rigidly attached to eef1 is the C-Frame
+    **/
+    void computeTwistVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2);
   };
 }
 

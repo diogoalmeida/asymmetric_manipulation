@@ -15,6 +15,11 @@ namespace coordination_experiments
     }
   }
 
+  void CoordinationController::twistCommandCb(const geometry_msgs::TwistStamped::ConstPtr &msg)
+  {
+    tf::twistMsgToEigen(msg->twist, commanded_rel_twist_);
+  }
+
   sensor_msgs::JointState CoordinationController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
   {
     sensor_msgs::JointState ret = current_state;
@@ -23,6 +28,11 @@ namespace coordination_experiments
 
     alg_->kdl_manager_->getJointPositions(alg_->eef1_, current_state, q1);
     alg_->kdl_manager_->getJointPositions(alg_->eef2_, current_state, q2);
+
+    if (max_time_ > 0 && (ros::Time::now() - init_time_).toSec() > max_time_)
+    {
+      action_server_->setSucceeded();
+    }
 
     if (newGoal_)
     {
@@ -41,6 +51,12 @@ namespace coordination_experiments
     {
       rel_twist = computeAlignRelativeTwist(current_state);
       computeAlignVirtualSticks(current_state, r1, r2);
+    }
+    else if (control_type_ == twist)
+    {
+      // rel_twist = getRelativeTwistCmd(current_state);
+      rel_twist = commanded_rel_twist_;
+      computeTwistVirtualSticks(current_state, r1, r2);
     }
 
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
@@ -118,7 +134,7 @@ namespace coordination_experiments
     return rel_twist;
   }
 
-  void CoordinationController::computeAlignVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2) 
+  void CoordinationController::computeAlignVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2)
   {
     KDL::Frame p1, obj1, p2, obj2;
 
@@ -130,6 +146,19 @@ namespace coordination_experiments
     obj2 = p2*obj_in_eef_[RIGHT];
     tf::vectorKDLToEigen(obj1.p - p1.p, r1);
     tf::vectorKDLToEigen(obj2.p - p2.p, r2);
+  }
+
+  void CoordinationController::computeTwistVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2)
+  {
+    KDL::Frame p1, p2, obj1;
+
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, state, p1);
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, state, p2);
+
+    obj1 = p1*obj_in_eef_[LEFT];
+
+    tf::vectorKDLToEigen(obj1.p - p1.p, r1);
+    tf::vectorKDLToEigen(obj1.p - p2.p, r2);
   }
 
   bool CoordinationController::parseGoal(boost::shared_ptr<const CoordinationControllerGoal> goal)
@@ -203,19 +232,32 @@ namespace coordination_experiments
     if (goal->input_mode.mode == goal->input_mode.ALIGN_FRAMES)
     {
       control_type_ = align;
-      if (!initializeObjectFrames())
-      {
-        return false;
-      }
     }
     else
     {
       control_type_ = twist;
+
+      twist_sub_ = nh_.subscribe(goal->input_mode.twist_topic, 1, &CoordinationController::twistCommandCb, this);
+    }
+
+    if (!initializeObjectFrames()) // if control_type_ is twist we use obj1 as C-Frame
+    {
+      return false;
+    }
+
+    if (goal->max_time > 0)
+    {
+      max_time_ = goal->max_time;
+    }
+    else
+    {
+      max_time_ = -1;
     }
 
     ROS_INFO("Coordination controller received a valid goal!");
     newGoal_ = true;
     feedback_.joint_space_norm = 0.0;
+    init_time_ = ros::Time::now();
     return true;
   }
 
