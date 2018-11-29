@@ -15,4 +15,6 @@
   <depend>sensor_msgs</depend>
   <depend>generic_control_toolbox</depend>
   <depend>actionlib_msgs</depend>
+  <depend>message_generation</depend>
+  <exec_depend>message_runtime</exec_depend>
 </package>

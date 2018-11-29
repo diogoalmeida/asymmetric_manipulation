@@ -13,6 +13,7 @@
 #include <std_srvs/Empty.h>
 
 const int LEFT = 0, RIGHT = 1;
+enum ControlType {align, twist};
 namespace coordination_experiments
 {
   class CoordinationController : public generic_control_toolbox::ControllerTemplate<CoordinationControllerAction,
@@ -43,6 +44,7 @@ namespace coordination_experiments
     Eigen::VectorXd q1_init_, q2_init_;
     bool newGoal_;
     int max_tf_attempts_;
+    ControlType control_type_;
     ros::ServiceClient reset_client_;
 
     /**
@@ -52,6 +54,22 @@ namespace coordination_experiments
       @returns True if initialization is successful, false otherwise.
     **/
     bool init();
+
+    /**
+      Initialize the object frames to be aligned in ALIGN_FRAMES input mode.
+      @return false if frames can't be found.
+    **/
+    bool initializeObjectFrames();
+
+    /**
+      Compute the relative motion twist for an align task.
+    **/
+    Eigen::Matrix<double, 6, 1> computeAlignRelativeTwist(const sensor_msgs::JointState &state);
+
+    /**
+      Compute the virtual sticks for an align task.
+    **/
+    void computeAlignVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2);
   };
 }
 

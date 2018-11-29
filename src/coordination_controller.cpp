@@ -18,8 +18,6 @@ namespace coordination_experiments
   sensor_msgs::JointState CoordinationController::controlAlgorithm(const sensor_msgs::JointState &current_state, const ros::Duration &dt)
   {
     sensor_msgs::JointState ret = current_state;
-    KDL::Frame p1, obj1, p2, obj2;
-    KDL::Vector rel_perr, abs_perr;
     Eigen::VectorXd q1, q2;
     double x, y, z, w;
 
@@ -36,45 +34,16 @@ namespace coordination_experiments
       newGoal_ = false;
     }
 
-    alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, current_state, p1);
-    alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, current_state, p2);
-
-    // Obtain the object frames in the base frame
-    obj1 = p1*obj_in_eef_[LEFT];
-    obj2 = p2*obj_in_eef_[RIGHT];
-
-    // DEBUG: publish converted object frames
-    tf::Transform obj1_transform, obj2_transform, abs_transform, rel_transform;
-    KDL::Frame abs_frame, rel_frame;
-    abs_frame = alg_->getAbsoluteMotionFrame(obj1, obj2);
-    rel_frame = alg_->getRelativeMotionFrame(obj1, obj2);
-    tf::transformKDLToTF(obj1, obj1_transform);
-    tf::transformKDLToTF(obj2, obj2_transform);
-    tf::transformKDLToTF(abs_frame, abs_transform);
-    tf::transformKDLToTF(rel_frame, rel_transform);
-
-    broadcaster_.sendTransform(tf::StampedTransform(obj1_transform, ros::Time::now(), "torso", "obj1_debug"));
-    broadcaster_.sendTransform(tf::StampedTransform(obj2_transform, ros::Time::now(), "torso", "obj2_debug"));
-    broadcaster_.sendTransform(tf::StampedTransform(abs_transform, ros::Time::now(), "torso", "absolute_frame"));
-    broadcaster_.sendTransform(tf::StampedTransform(rel_transform, ros::Time::now(), "torso", "relative_frame"));
-
-    Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
-    tf::transformKDLToEigen(obj1, obj1_eig);
-    tf::transformKDLToEigen(obj2, obj2_eig);
-    Eigen::Matrix3d relative_error = obj1_eig.linear().transpose()*obj2_eig.linear(); // Orientation error between the two object frames.
-    Eigen::Quaterniond quat_err(relative_error);
-    Eigen::AngleAxisd relative_error_ang_axis(quat_err);
-
-    // Compute desired relative twist
     Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
-    rel_perr = (-obj2.p + obj1.p);
-    rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
-    rel_twist.block<3,1>(3,0) = obj1_eig.linear()*quat_err.inverse().vec(); // The error between frames needs to be converted to the base frame.
-
     Eigen::Vector3d r1, r2;
+
+    if (control_type_ == align)
+    {
+      rel_twist = computeAlignRelativeTwist(current_state);
+      computeAlignVirtualSticks(current_state, r1, r2);
+    }
+
     abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
-    tf::vectorKDLToEigen(obj1.p - p1.p, r1);
-    tf::vectorKDLToEigen(obj2.p - p2.p, r2);
     Eigen::VectorXd joint_velocities = alg_->control(current_state, r1, r2, abs_twist, Kp_r_*rel_twist);
 
     Eigen::Matrix<double, 6, 1> meas_abs_twist, meas_rel_twist;
@@ -88,11 +57,6 @@ namespace coordination_experiments
       feedback_.absolute_velocity.push_back(meas_abs_twist[i]);
       feedback_.relative_velocity.push_back(meas_rel_twist[i]);
     }
-
-    feedback_.relative_error_angle = relative_error_ang_axis.angle();
-    feedback_.relative_error_norm = rel_perr.Norm();
-
-    tf::pointKDLToMsg(rel_perr, feedback_.relative_error);
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {
@@ -123,11 +87,56 @@ namespace coordination_experiments
     return ret;
   }
 
+  Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(const sensor_msgs::JointState &state)
+  {
+    KDL::Frame p1, obj1, p2, obj2;
+    KDL::Vector rel_perr;
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, state, p1);
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, state, p2);
+
+    // Obtain the object frames in the base frame
+    obj1 = p1*obj_in_eef_[LEFT];
+    obj2 = p2*obj_in_eef_[RIGHT];
+
+    Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
+    tf::transformKDLToEigen(obj1, obj1_eig);
+    tf::transformKDLToEigen(obj2, obj2_eig);
+    Eigen::Matrix3d relative_error = obj1_eig.linear().transpose()*obj2_eig.linear(); // Orientation error between the two object frames.
+    Eigen::Quaterniond quat_err(relative_error);
+    Eigen::AngleAxisd relative_error_ang_axis(quat_err);
+
+    // Compute desired relative twist
+    Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
+    rel_perr = (-obj2.p + obj1.p);
+    rel_twist.block<3,1>(0,0) << rel_perr.x(), rel_perr.y(), rel_perr.z();
+    rel_twist.block<3,1>(3,0) = obj1_eig.linear()*quat_err.inverse().vec(); // The error between frames needs to be converted to the base frame.
+
+    feedback_.relative_error_angle = relative_error_ang_axis.angle();
+    feedback_.relative_error_norm = rel_perr.Norm();
+    tf::pointKDLToMsg(rel_perr, feedback_.relative_error);
+
+    return rel_twist;
+  }
+
+  void CoordinationController::computeAlignVirtualSticks(const sensor_msgs::JointState &state, Eigen::Vector3d &r1, Eigen::Vector3d &r2) 
+  {
+    KDL::Frame p1, obj1, p2, obj2;
+
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, state, p1);
+    alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, state, p2);
+
+    // Obtain the object frames in the base frame
+    obj1 = p1*obj_in_eef_[LEFT];
+    obj2 = p2*obj_in_eef_[RIGHT];
+    tf::vectorKDLToEigen(obj1.p - p1.p, r1);
+    tf::vectorKDLToEigen(obj2.p - p2.p, r2);
+  }
+
   bool CoordinationController::parseGoal(boost::shared_ptr<const CoordinationControllerGoal> goal)
   {
     std_srvs::Empty srv;
 
-    if (goal->controller == goal->RESET)
+    if (goal->control_mode.controller == goal->control_mode.RESET)
     {
       if (reset_client_.call(srv))
       {
@@ -139,7 +148,7 @@ namespace coordination_experiments
         return false;
       }
     }
-    else if (goal->controller == goal->ECTS)
+    else if (goal->control_mode.controller == goal->control_mode.ECTS)
     {
       if (!reset_client_.call(srv))
       {
@@ -148,7 +157,7 @@ namespace coordination_experiments
 
       alg_ = std::make_shared<coordination_algorithms::ECTS>();
     }
-    else if (goal->controller == goal->RELJAC)
+    else if (goal->control_mode.controller == goal->control_mode.RELJAC)
     {
       if (!reset_client_.call(srv))
       {
@@ -159,7 +168,7 @@ namespace coordination_experiments
     }
     else
     {
-      ROS_ERROR_STREAM("Unknown controller: " << goal->controller);
+      ROS_ERROR_STREAM("Unknown controller: " << goal->control_mode.controller);
       return false;
     }
 
@@ -191,6 +200,27 @@ namespace coordination_experiments
       return false;
     }
 
+    if (goal->input_mode.mode == goal->input_mode.ALIGN_FRAMES)
+    {
+      control_type_ = align;
+      if (!initializeObjectFrames())
+      {
+        return false;
+      }
+    }
+    else
+    {
+      control_type_ = twist;
+    }
+
+    ROS_INFO("Coordination controller received a valid goal!");
+    newGoal_ = true;
+    feedback_.joint_space_norm = 0.0;
+    return true;
+  }
+
+  bool CoordinationController::initializeObjectFrames()
+  {
     geometry_msgs::PoseStamped object_pose;
     object_pose.header.frame_id = obj_frame_[LEFT];
     object_pose.header.stamp = ros::Time(0);
@@ -255,9 +285,6 @@ namespace coordination_experiments
     }
     tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[RIGHT]);
 
-    ROS_INFO("Coordination controller received a valid goal!");
-    newGoal_ = true;
-    feedback_.joint_space_norm = 0.0;
     return true;
   }
 

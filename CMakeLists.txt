@@ -8,10 +8,17 @@ find_package(
   sensor_msgs
   generic_control_toolbox
   actionlib_msgs
+  message_generation
 )
 
 add_definitions(-std=c++11)
 link_directories(${catkin_LIBRARY_DIRS})
+
+add_message_files(
+  FILES
+  Controllers.msg
+  Inputs.msg
+)
 
 add_action_files(
   DIRECTORY action
@@ -26,7 +33,7 @@ generate_messages(
 
 catkin_package(
   LIBRARIES ects
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs generic_control_toolbox actionlib_msgs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs generic_control_toolbox actionlib_msgs message_generation
   INCLUDE_DIRS include
 )
 
