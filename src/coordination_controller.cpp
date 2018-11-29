@@ -90,7 +90,9 @@ namespace coordination_experiments
     }
 
     feedback_.relative_error_angle = relative_error_ang_axis.angle();
-    feedback_.relative_error_pos = rel_perr.Norm();
+    feedback_.relative_error_norm = rel_perr.Norm();
+
+    tf::pointKDLToMsg(rel_perr, feedback_.relative_error);
 
     for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
     {

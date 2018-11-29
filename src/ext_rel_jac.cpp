@@ -123,6 +123,7 @@ namespace coordination_algorithms
   Eigen::MatrixXd ExtRelJac::computeJacobian(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2) const
   {
     Matrix12d W = computeW(r1, r2);
+    double scaling = 1/((1-rel_alpha_)*(1-rel_alpha_) + rel_alpha_*rel_alpha_);
     Eigen::Matrix<double, 6, 12> L;
     Eigen::MatrixXd J_r, J;
     KDL::Jacobian J1_kdl, J2_kdl;
@@ -130,10 +131,8 @@ namespace coordination_algorithms
     kdl_manager_->getJacobian(eef1_, state, J1_kdl);
     kdl_manager_->getJacobian(eef2_, state, J2_kdl);
 
-    L.block<6,6>(0,0) = -(1 - rel_alpha_)*Matrix6d::Identity();
-    L.block<6,6>(0,6) = rel_alpha_*Matrix6d::Identity();
-
-    L = 1/((1-rel_alpha_)*(1-rel_alpha_) + rel_alpha_*rel_alpha_) * L;
+    L.block<6,6>(0,0) = -(1 - rel_alpha_)*scaling*Matrix6d::Identity();
+    L.block<6,6>(0,6) = rel_alpha_*scaling*Matrix6d::Identity();
 
     J = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
     J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
