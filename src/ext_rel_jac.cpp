@@ -24,11 +24,33 @@ namespace coordination_algorithms
 
     J = computeJacobian(state, r1 + p1_eig.translation() - eef1_eig.translation(), r2 + p2_eig.translation() - eef2_eig.translation());
 
-    damped_inverse = (J*J.transpose() + damping_*Matrix6d::Identity());
+    Matrix12d W = computeW(r1, r2);
+    Eigen::Matrix<double, 6, 12> L = Eigen::Matrix<double, 6, 12>::Zero(), L_sim = Eigen::Matrix<double, 6, 12>::Zero();
+    Eigen::MatrixXd J_a, J_o, J_sim;
+    KDL::Jacobian J1_kdl, J2_kdl;
+
+    kdl_manager_->getJacobian(eef1_, state, J1_kdl);
+    kdl_manager_->getJacobian(eef2_, state, J2_kdl);
+
+    L.block<6,6>(0,0) = (rel_alpha_)*Matrix6d::Identity();
+    L.block<6,6>(0,6) = (1 - rel_alpha_)*Matrix6d::Identity();
+    L_sim.block<6,6>(0,0) = -Matrix6d::Identity();
+    L_sim.block<6,6>(0,6) = Matrix6d::Identity();
+
+    J_o = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
+    J_o.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
+    J_o.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
+
+    J_a = L*W*J_o;
+    J_sim = L_sim*W*J_o;
+
+    Eigen::Matrix<double, 14, 6> damped_a_inverse = J_a.transpose()*(J_a*J_a.transpose() + 0*damping_*Matrix6d::Identity()).inverse(), damped_sim_inverse = J_sim.transpose()*(J_sim*J_sim.transpose()).inverse();
+
+    damped_inverse = (J*J.transpose() + 0*damping_*Matrix6d::Identity());
 
     q_dot = J.transpose()*damped_inverse.colPivHouseholderQr().solve(rel_twist);
 
-    return q_dot;
+    return damped_sim_inverse*rel_twist + (Eigen::Matrix<double, 14, 14>::Identity() - damped_sim_inverse*J_sim)*q_dot;
   }
 
   void ExtRelJac::getAbsoluteVelocity(const sensor_msgs::JointState &state, const Vector3d &r1, const Vector3d &r2, Vector6d &abs_vel) const
@@ -132,7 +154,9 @@ namespace coordination_algorithms
     kdl_manager_->getJacobian(eef2_, state, J2_kdl);
 
     L.block<6,6>(0,0) = -(1 - rel_alpha_)*scaling*Matrix6d::Identity();
+    // L.block<6,6>(0,0) = -Matrix6d::Identity();
     L.block<6,6>(0,6) = rel_alpha_*scaling*Matrix6d::Identity();
+    // L.block<6,6>(0,6) = Matrix6d::Identity();
 
     J = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
     J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
