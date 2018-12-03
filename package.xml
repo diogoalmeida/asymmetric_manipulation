@@ -16,5 +16,8 @@
   <depend>generic_control_toolbox</depend>
   <depend>actionlib_msgs</depend>
   <depend>message_generation</depend>
+  <depend>baxter_description</depend>
+  <depend>robot_kinematic_simulation</depend>
+  <depend>object_server</depend>
   <exec_depend>message_runtime</exec_depend>
 </package>

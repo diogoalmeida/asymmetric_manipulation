@@ -9,6 +9,9 @@ find_package(
   generic_control_toolbox
   actionlib_msgs
   message_generation
+  baxter_description
+  robot_kinematic_simulation
+  object_server
 )
 
 add_definitions(-std=c++11)
@@ -33,7 +36,7 @@ generate_messages(
 
 catkin_package(
   LIBRARIES ects
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs generic_control_toolbox actionlib_msgs message_generation
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs generic_control_toolbox actionlib_msgs message_generation baxter_description robot_kinematic_simulation object_server
   INCLUDE_DIRS include
 )
 
