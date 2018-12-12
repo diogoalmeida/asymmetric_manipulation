@@ -10,5 +10,3 @@ float64 joint_space_norm
 float64 relative_error_norm
 float64 relative_error_angle
 geometry_msgs/Point relative_error
-float64[] absolute_velocity
-float64[] relative_velocity
