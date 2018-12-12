@@ -44,6 +44,14 @@ class AlgorithmBase
                                   const Vector6d &abs_twist,
                                   const Vector6d &rel_twist) = 0;
 
+  /**
+    Allows derived classes to obtain the required data for their secundary
+  tasks.
+
+    @returns False if the required data is not obtained.
+  **/
+  virtual bool getSecundaryTask() { return true; };
+
   void setRelativeAlpha(double alpha) { rel_alpha_ = alpha; }
   void setAbsoluteAlpha(double alpha) { abs_alpha_ = alpha; }
   double getRelativeAlpha() const { return rel_alpha_; }

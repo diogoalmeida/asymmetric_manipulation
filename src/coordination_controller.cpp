@@ -47,7 +47,13 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
     target_joint_positions_.block(0, 0, num_joints_[LEFT], 1) = q1;
     target_joint_positions_.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1) =
         q2;
+
     newGoal_ = false;
+    if (!alg_->getSecundaryTask())
+    {
+      action_server_->setAborted();
+      return ret;
+    }
   }
 
   Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
@@ -60,7 +66,6 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   }
   else if (control_type_ == twist)
   {
-    // rel_twist = getRelativeTwistCmd(current_state);
     rel_twist = commanded_rel_twist_;
     computeTwistVirtualSticks(current_state, r1, r2);
   }
