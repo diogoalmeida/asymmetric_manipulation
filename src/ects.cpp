@@ -47,12 +47,12 @@ Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state,
   J_e = L * W * J;
 
   Matrix12d damped_inverse =
-      (J * J.transpose() + damping_ * Matrix12d::Identity());
+      (J_e * J_e.transpose() + damping_ * Matrix12d::Identity());
 
   total_twist.block<6, 1>(0, 0) = abs_twist;
   total_twist.block<6, 1>(6, 0) = rel_twist;
   q_dot =
-      J.transpose() * damped_inverse.colPivHouseholderQr().solve(total_twist);
+      J_e.transpose() * damped_inverse.colPivHouseholderQr().solve(total_twist);
 
   return q_dot;
 }
