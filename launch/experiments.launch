@@ -1,14 +1,21 @@
 <launch>
   <arg name="kinematic_sim" default="true"/>
+  <arg name="debug" default="false"/>
 
   <param if="$(arg kinematic_sim)" name="robot_description" command="$(find xacro)/xacro.py --inorder $(find baxter_description)/urdf/baxter.urdf.xacro gazebo:=false"/>
   <include if="$(arg kinematic_sim)" file="$(find robot_kinematic_simulation)/launch/sim.launch"/>
   <include unless="$(arg kinematic_sim)" file="$(find baxter_command_msg_conversion)/launch/msg_conversion.launch"/>
 
-  <node pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen">
+  <node if="$(arg debug)" pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen" launch-prefix="xterm -e gdb --args">
     <remap from="joint_states" to="/robot/joint_states"/>
     <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
   </node>
+
+  <node unless="$(arg debug)" pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen">
+    <remap from="joint_states" to="/robot/joint_states"/>
+    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+  </node>
+
   <node name="object_server" type="object_server" pkg="object_server" output="screen">
     <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
   </node>
