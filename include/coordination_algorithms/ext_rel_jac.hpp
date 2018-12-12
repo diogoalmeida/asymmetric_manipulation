@@ -28,21 +28,6 @@ class ExtRelJac : public AlgorithmBase
                                     const KDL::Frame &obj2) const;
   KDL::Frame getRelativeMotionFrame(const KDL::Frame &obj1,
                                     const KDL::Frame &obj2) const;
-
- private:
-  /**
-    Computes the extended relative jacobian given the current joint state and
-  the virtual sticks to the task C-frame.
-  **/
-  Eigen::MatrixXd computeJacobian(const sensor_msgs::JointState &state,
-                                  const Vector3d &r1, const Vector3d &r2) const;
-
-  /**
-    Get the rotation matrix that does interp % of the rotation of rot about its
-  rotation axis.
-  **/
-  Eigen::Matrix3d getRotAxisInterp(const KDL::Rotation &rot,
-                                   double interp) const;
 };
 }  // namespace coordination_algorithms
 
