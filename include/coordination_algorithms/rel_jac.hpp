@@ -35,7 +35,9 @@ class RelJac : public AlgorithmBase
   **/
   bool init();
 
-  Eigen::Affine3d secundaryTarget_;
+  Eigen::Affine3d secundary_target_;
+  Eigen::MatrixXd Kp_;
+  tf::TransformListener listener_;
 };
 }  // namespace coordination_algorithms
 

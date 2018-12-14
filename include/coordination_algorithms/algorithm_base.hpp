@@ -13,6 +13,7 @@ typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 12, 1> Vector12d;
 typedef Eigen::Matrix<double, 6, 12> MatrixRelLinkingd;
 typedef Eigen::Matrix<double, 14, 6> MatrixInvRelativeJacd;
+typedef Eigen::Matrix<double, 14, 12> MatrixInvECTSd;
 typedef Eigen::Matrix<double, 14, 14> Matrix14d;
 
 /**

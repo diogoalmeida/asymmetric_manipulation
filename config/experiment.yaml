@@ -27,8 +27,15 @@ eef2:
   sensor_frame: ""
   sensor_topic: ""
 
+secundary_gain:
+  data: [10.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 10.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 10.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
 
-marker_servers: ['relative_motion_markers', 'absolute_motion_markers']
+marker_servers: ['relative_motion_markers', 'absolute_motion_markers', 'secundary_motion_markers']
 
 relative_motion_markers:
   marker_names: ['obj1', 'obj2']
@@ -50,3 +57,11 @@ absolute_motion_markers:
     parent_frame: 'base'
     name: 'absolute_pose'
     initial_pose: [0.7, 0.0, 0.5, 0, 0, 0, 1]
+
+secundary_motion_markers:
+  marker_names: ['secundary_pose']
+
+  secundary_pose:
+    parent_frame: 'left_gripper'
+    name: 'secundary_pose'
+    initial_pose: [0.0, 0.0, 0.0, 0, 0, 0, 1]

@@ -209,7 +209,7 @@ bool CoordinationController::parseGoal(
 
     alg_ = std::make_shared<coordination_algorithms::ECTS>();
   }
-  else if (goal->control_mode.controller == goal->control_mode.RELJAC)
+  else if (goal->control_mode.controller == goal->control_mode.EXTRELJAC)
   {
     if (!reset_client_.call(srv))
     {
@@ -217,6 +217,15 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::ExtRelJac>();
+  }
+  else if (goal->control_mode.controller == goal->control_mode.RELJAC)
+  {
+    if (!reset_client_.call(srv))
+    {
+      return false;
+    }
+
+    alg_ = std::make_shared<coordination_algorithms::RelJac>();
   }
   else
   {

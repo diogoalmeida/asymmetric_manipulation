@@ -9,6 +9,7 @@
 #include <tf_conversions/tf_kdl.h>
 #include <coordination_algorithms/ects.hpp>
 #include <coordination_algorithms/ext_rel_jac.hpp>
+#include <coordination_algorithms/rel_jac.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <generic_control_toolbox/controller_template.hpp>
 

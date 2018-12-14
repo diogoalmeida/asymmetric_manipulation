@@ -2,7 +2,14 @@
 
 namespace coordination_algorithms
 {
-RelJac::RelJac() : AlgorithmBase() {}
+RelJac::RelJac() : AlgorithmBase()
+{
+  if (!init())
+  {
+    throw std::logic_error(
+        "Failed to initialize the relative Jacobian controller!");
+  }
+}
 
 bool RelJac::init()
 {
@@ -12,15 +19,44 @@ bool RelJac::init()
     return false;
   }
 
-  // setup secundary markers over service call
-
   return true;
 }
 
 bool RelJac::getSecundaryTask()
 {
-  // use TF listener to get current pose for the secundary task. Return false if
-  // TF fails.
+  geometry_msgs::PoseStamped task_pose;
+  task_pose.header.frame_id = "secundary_pose";
+  task_pose.header.stamp = ros::Time(0);
+  task_pose.pose.position.x = 0;
+  task_pose.pose.position.y = 0;
+  task_pose.pose.position.z = 0;
+  task_pose.pose.orientation.x = 0;
+  task_pose.pose.orientation.y = 0;
+  task_pose.pose.orientation.z = 0;
+  task_pose.pose.orientation.w = 1;
+
+  int attempts;
+  for (attempts = 0; attempts < 5; attempts++)
+  {
+    try
+    {
+      listener_.transformPose("base", task_pose, task_pose);
+      break;
+    }
+    catch (tf::TransformException ex)
+    {
+      ROS_WARN("TF exception in coordination controller: %s", ex.what());
+      ros::Duration(0.1).sleep();
+    }
+  }
+
+  if (attempts >= 5)
+  {
+    ROS_ERROR_STREAM("Failed to obtain pose of eef_target in base_link");
+    return false;
+  }
+
+  tf::poseMsgToEigen(task_pose.pose, secundary_target_);
 
   return true;
 }
@@ -69,10 +105,21 @@ Eigen::VectorXd RelJac::control(const sensor_msgs::JointState &state,
   MatrixInvRelativeJacd damped_sim_inverse =
       J_sim.transpose() *
       (J_sim * J_sim.transpose() + damping_ * Matrix6d::Identity()).inverse();
-  MatrixInvRelativeJacd damped_sec_inverse =
+  MatrixInvECTSd damped_sec_inverse =
       J_sec.transpose() *
-      (J_sec * J_sec.transpose() + damping_ * Matrix6d::Identity()).inverse();
+      (J_sec * J_sec.transpose() + damping_ * Matrix12d::Identity()).inverse();
 
+  // compute twist from secundary task
+  Eigen::Matrix3d orientation_err =
+      secundary_target_.linear().transpose() * p1_eig.linear();
+  Eigen::Quaterniond quat_err(orientation_err);
+  Vector12d sec_twist = Vector12d::Zero();
+  sec_twist.block<3, 1>(0, 0) =
+      -p1_eig.translation() + secundary_target_.translation();
+  sec_twist.block<3, 1>(3, 0) =
+      secundary_target_.linear() * quat_err.inverse().vec();
+
+  sec_twist.block<6, 1>(0, 0) = Kp_ * sec_twist.block<6, 1>(0, 0);
   Eigen::VectorXd qdot_sec = damped_sec_inverse * sec_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
 
