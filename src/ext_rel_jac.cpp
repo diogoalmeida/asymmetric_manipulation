@@ -26,8 +26,7 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
            r2_conv = r2 + p2_eig.translation() - eef2_eig.translation();
 
   Matrix12d W = computeW(r1_conv, r2_conv);
-  double scaling =
-      1 / ((1 - rel_alpha_) * (1 - rel_alpha_) + rel_alpha_ * rel_alpha_);
+  double scaling = 1 / ((1 - alpha_) * (1 - alpha_) + alpha_ * alpha_);
   MatrixRelLinkingd L_asym = MatrixRelLinkingd::Zero(),
                     L_sim = MatrixRelLinkingd::Zero();
   KDL::Jacobian J1_kdl, J2_kdl;
@@ -40,8 +39,8 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
   J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
 
-  L_asym.block<6, 6>(0, 0) = -(1 - rel_alpha_) * scaling * Matrix6d::Identity();
-  L_asym.block<6, 6>(0, 6) = rel_alpha_ * scaling * Matrix6d::Identity();
+  L_asym.block<6, 6>(0, 0) = -(1 - alpha_) * scaling * Matrix6d::Identity();
+  L_asym.block<6, 6>(0, 6) = alpha_ * scaling * Matrix6d::Identity();
 
   L_sim.block<6, 6>(0, 0) = -Matrix6d::Identity();
   L_sim.block<6, 6>(0, 6) = Matrix6d::Identity();

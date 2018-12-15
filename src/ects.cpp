@@ -35,8 +35,8 @@ Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state,
   kdl_manager_->getJacobian(eef1_, state, J1_kdl);
   kdl_manager_->getJacobian(eef2_, state, J2_kdl);
 
-  L.block<6, 6>(0, 0) = abs_alpha_ * Matrix6d::Identity();
-  L.block<6, 6>(0, 6) = (1 - abs_alpha_) * Matrix6d::Identity();
+  L.block<6, 6>(0, 0) = alpha_ * Matrix6d::Identity();
+  L.block<6, 6>(0, 6) = (1 - alpha_) * Matrix6d::Identity();
   L.block<6, 6>(6, 0) = -Matrix6d::Identity();
   L.block<6, 6>(6, 6) = Matrix6d::Identity();
 

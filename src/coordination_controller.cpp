@@ -147,6 +147,7 @@ Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(
 
   feedback_.relative_error_angle = relative_error_ang_axis.angle();
   feedback_.relative_error_norm = rel_perr.Norm();
+  feedback_.curr_alpha = alg_->getAlpha();
   tf::pointKDLToMsg(rel_perr, feedback_.relative_error);
 
   return rel_twist;
@@ -237,20 +238,13 @@ bool CoordinationController::parseGoal(
       .sleep();  // let the controller get the updated simulation joint state
   ros::spinOnce();
 
-  if (goal->abs_alpha < 0 || goal->abs_alpha > 1)
+  if (goal->alpha < 0 || goal->alpha > 1)
   {
-    ROS_ERROR("Abs alpha must be between 0 and 1");
+    ROS_ERROR("Alpha must be between 0 and 1");
     return false;
   }
 
-  if (goal->rel_alpha < 0 || goal->rel_alpha > 1)
-  {
-    ROS_ERROR("Rel alpha must be between 0 and 1");
-    return false;
-  }
-
-  alg_->setAbsoluteAlpha(goal->abs_alpha);
-  alg_->setRelativeAlpha(goal->rel_alpha);
+  alg_->setAlpha(goal->alpha);
 
   if (!alg_->kdl_manager_->getNumJoints(alg_->eef1_, num_joints_[LEFT]))
   {

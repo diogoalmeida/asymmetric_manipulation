@@ -53,10 +53,8 @@ class AlgorithmBase
   **/
   virtual bool getSecundaryTask() { return true; };
 
-  void setRelativeAlpha(double alpha) { rel_alpha_ = alpha; }
-  void setAbsoluteAlpha(double alpha) { abs_alpha_ = alpha; }
-  double getRelativeAlpha() const { return rel_alpha_; }
-  double getAbsoluteAlpha() const { return abs_alpha_; }
+  void setAlpha(double alpha) { alpha_ = alpha; }
+  double getAlpha() const { return alpha_; }
 
   std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
   std::string eef1_, eef2_;
@@ -64,7 +62,7 @@ class AlgorithmBase
  protected:
   ros::NodeHandle nh_;
   std::string base_;
-  double abs_alpha_, rel_alpha_, damping_;
+  double alpha_, damping_;
 
   /**
     Initializes the parameters required to use an algorithm.

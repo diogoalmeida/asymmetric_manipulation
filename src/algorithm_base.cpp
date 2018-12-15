@@ -2,8 +2,7 @@
 
 namespace coordination_algorithms
 {
-AlgorithmBase::AlgorithmBase()
-    : nh_("~"), rel_alpha_(0.5), abs_alpha_(0.5), damping_(0.0001)
+AlgorithmBase::AlgorithmBase() : nh_("~"), alpha_(0.5), damping_(0.0001)
 {
   if (!init())
   {
