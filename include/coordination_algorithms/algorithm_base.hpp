@@ -88,6 +88,14 @@ class AlgorithmBase
     @param r2 Virtual stick connecting eef2 to its corresponding task frame.
   **/
   Matrix12d computeW(const Vector3d &r1, const Vector3d &r2) const;
+
+  /**
+    Compute the (symmetric) absolute pose of the two manipulators.
+
+    @param state The current dual-arm system joint state.
+  **/
+  geometry_msgs::Pose computeAbsolutePose(
+      const sensor_msgs::JointState &state) const;
 };
 }  // namespace coordination_algorithms
 
