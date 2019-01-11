@@ -92,6 +92,13 @@ geometry_msgs::Pose AlgorithmBase::computeAbsolutePose(
   return p_avg;
 }
 
+Eigen::VectorXd AlgorithmBase::controlAlgorithm(
+    const sensor_msgs::JointState &state, const Vector3d &r1,
+    const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
+{
+  return control(state, r1, r2, abs_twist, rel_twist);
+}
+
 bool AlgorithmBase::setArm(const std::string &arm_name, std::string &eef_name)
 {
   generic_control_toolbox::ArmInfo info;

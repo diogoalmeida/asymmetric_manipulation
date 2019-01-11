@@ -29,21 +29,12 @@ class AlgorithmBase
   ~AlgorithmBase() {}
 
   /**
-    Implement the coordination algorithm. Given reference absolute and relative
-  twists for a given task frame, solve the inverse differential kinematics to
-  obtain joint velocities for the two manipulators.
-
-    @param state The dual-arm manipulator joint state.
-    @param r1 The virtual stick connecting eef_1 to the task frame.
-    @param r2 The virtual stick connecting eef_2 to the task frame.
-    @param abs_twist The absolute motion twist in the task frame.
-    @param rel_twist The relative motion twist in the task frame.
-    @returns The resolved joint velocities for the two manipulators.
+    Interface control method.
   **/
-  virtual Eigen::VectorXd control(const sensor_msgs::JointState &state,
-                                  const Vector3d &r1, const Vector3d &r2,
-                                  const Vector6d &abs_twist,
-                                  const Vector6d &rel_twist) = 0;
+  Eigen::VectorXd controlAlgorithm(const sensor_msgs::JointState &state,
+                                   const Vector3d &r1, const Vector3d &r2,
+                                   const Vector6d &abs_twist,
+                                   const Vector6d &rel_twist);
 
   /**
     Allows derived classes to obtain the required data for their secundary
@@ -79,6 +70,23 @@ class AlgorithmBase
     @returns True in case of success, False otherwise.
   **/
   bool setArm(const std::string &arm_name, std::string &eef_name);
+
+  /**
+    Implement the coordination algorithm. Given reference absolute and relative
+  twists for a given task frame, solve the inverse differential kinematics to
+  obtain joint velocities for the two manipulators.
+
+    @param state The dual-arm manipulator joint state.
+    @param r1 The virtual stick connecting eef_1 to the task frame.
+    @param r2 The virtual stick connecting eef_2 to the task frame.
+    @param abs_twist The absolute motion twist in the task frame.
+    @param rel_twist The relative motion twist in the task frame.
+    @returns The resolved joint velocities for the two manipulators.
+  **/
+  virtual Eigen::VectorXd control(const sensor_msgs::JointState &state,
+                                  const Vector3d &r1, const Vector3d &r2,
+                                  const Vector6d &abs_twist,
+                                  const Vector6d &rel_twist) = 0;
 
   /**
     Compute the wrench conversion matrix which maps twists in the task frames to

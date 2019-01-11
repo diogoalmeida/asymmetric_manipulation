@@ -71,8 +71,8 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   }
 
   abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
-  Eigen::VectorXd joint_velocities =
-      alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
+  Eigen::VectorXd joint_velocities = alg_->controlAlgorithm(
+      current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
 
   Eigen::Matrix<double, 6, 1> meas_abs_twist, meas_rel_twist;
 
