@@ -18,37 +18,6 @@ bool AlgorithmBase::init()
     return false;
   }
 
-  if (!nh_.getParam("absolute_pose_limits/upper_limits", pose_upper_ct_))
-  {
-    ROS_ERROR("Missing absolute_pose_limits/upper_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_pose_limits/upper_thresholds", pose_upper_thr_))
-  {
-    ROS_ERROR("Missing absolute_pose_limits/upper_thresholds parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_pose_limits/lower_limits", pose_lower_ct_))
-  {
-    ROS_ERROR("Missing absolute_pose_limits/lower_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_pose_limits/lower_thresholds", pose_lower_thr_))
-  {
-    ROS_ERROR("Missing absolute_pose_limits/lower_thresholds parameter");
-    return false;
-  }
-
-  if (pose_upper_ct_.size() != 6 || pose_upper_thr_.size() != 6 ||
-      pose_lower_ct_.size() != 6 || pose_lower_thr_.size() != 6)
-  {
-    ROS_ERROR("The absolute pose limits must all be vectors of length 6!");
-    return false;
-  }
-
   kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_);
 
   if (!setArm("eef1", eef1_))
@@ -62,41 +31,6 @@ bool AlgorithmBase::init()
   }
 
   return true;
-}
-
-geometry_msgs::Pose AlgorithmBase::computeAbsolutePose(
-    const sensor_msgs::JointState &state) const
-{
-  KDL::Frame p1, p2;
-  Eigen::Affine3d p1_eig, p2_eig;
-
-  kdl_manager_->getGrippingPoint(eef1_, state, p1);
-  kdl_manager_->getGrippingPoint(eef2_, state, p2);
-  tf::transformKDLToEigen(p1, p1_eig);
-  tf::transformKDLToEigen(p2, p2_eig);
-
-  Eigen::Vector3d avg_pos = (p1_eig.translation() + p2_eig.translation()) / 2;
-  Eigen::Matrix3d r1 = p1_eig.matrix().block<3, 3>(0, 0);
-  Eigen::Matrix3d r2 = p2_eig.matrix().block<3, 3>(0, 0);
-  Eigen::Matrix3d rel = r1.transpose() * r2;
-  Eigen::AngleAxisd rel_aa(rel);
-  Eigen::AngleAxisd abs_aa(rel_aa.angle() / 2, rel_aa.axis());
-  Eigen::Matrix3d r_abs = r1 * abs_aa.toRotationMatrix();
-
-  Eigen::Affine3d avg_eig;
-  avg_eig.translate(avg_pos);
-  avg_eig.rotate(r_abs);
-
-  geometry_msgs::Pose p_avg;
-  tf::poseEigenToMsg(avg_eig, p_avg);
-  return p_avg;
-}
-
-Eigen::VectorXd AlgorithmBase::controlAlgorithm(
-    const sensor_msgs::JointState &state, const Vector3d &r1,
-    const Vector3d &r2, const Vector6d &abs_twist, const Vector6d &rel_twist)
-{
-  return control(state, r1, r2, abs_twist, rel_twist);
 }
 
 bool AlgorithmBase::setArm(const std::string &arm_name, std::string &eef_name)

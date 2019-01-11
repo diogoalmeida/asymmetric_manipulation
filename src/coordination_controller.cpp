@@ -52,8 +52,8 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
     if (!alg_->getSecundaryTask())
     {
       action_server_->setAborted();
-      return ret;
     }
+    return ret;
   }
 
   Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
@@ -71,10 +71,22 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   }
 
   abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
-  Eigen::VectorXd joint_velocities = alg_->controlAlgorithm(
-      current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
+  geometry_msgs::Pose absolute_pose = computeAbsolutePose(current_state);
+  tf::Transform transform;
+  tf::poseMsgToTF(absolute_pose, transform);
 
-  Eigen::Matrix<double, 6, 1> meas_abs_twist, meas_rel_twist;
+  broadcaster_.sendTransform(tf::StampedTransform(
+      transform, ros::Time::now(), alg_->base_, "computed_absolute_pose"));
+
+  KDL::Jacobian J1_kdl, J2_kdl;
+  alg_->kdl_manager_->getJacobian(alg_->eef1_, current_state, J1_kdl);
+  alg_->kdl_manager_->getJacobian(alg_->eef2_, current_state, J2_kdl);
+
+  double alpha = computeAlpha(absolute_pose, J1_kdl.data, J2_kdl.data);
+  // alg_->setAlpha(alpha);
+
+  Eigen::VectorXd joint_velocities =
+      alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
 
   for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
   {
@@ -113,6 +125,56 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
       joint_velocities.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), ret);
 
   return ret;
+}
+
+double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
+                                            const Eigen::MatrixXd &J1,
+                                            const Eigen::MatrixXd &J2) const
+{
+  coordination_algorithms::Vector6d pose_eig;
+  coordination_algorithms::Vector6d f_values;
+  Eigen::Vector3d position_eig;
+  Eigen::Quaterniond orientation_eig;
+
+  tf::pointMsgToEigen(abs_pose.position, position_eig);
+  tf::quaternionMsgToEigen(abs_pose.orientation, orientation_eig);
+  pose_eig.block<3, 1>(0, 0) = position_eig;
+  pose_eig.block<3, 1>(3, 0) =
+      orientation_eig.toRotationMatrix().eulerAngles(0, 1, 2);
+
+  double d = 0;
+  for (unsigned int i = 0; i < 6; i++)
+  {
+    if (pose_eig[i] < pose_lower_thr_[i])
+    {
+      d = fabs(pose_lower_thr_[i] - pose_eig[i]) /
+          fabs(pose_lower_thr_[i] - pose_lower_ct_[i]);
+    }
+    else if (pose_eig[i] > pose_upper_thr_[i])
+    {
+      d = fabs(pose_upper_thr_[i] - pose_eig[i]) /
+          fabs(pose_upper_thr_[i] - pose_upper_ct_[i]);
+    }
+    else
+    {
+      f_values[i] = 0.0;
+      continue;
+    }
+
+    f_values[i] = 1.5 * d * d - d * d * d;
+  }
+
+  double mu1, mu2;
+
+  mu1 = sqrt((J1 * J1.transpose()).determinant());
+  mu2 = sqrt((J2 * J2.transpose()).determinant());
+
+  if (mu2 > mu1)
+  {
+    return 0.5 + f_values.maxCoeff();
+  }
+
+  return 0.5 - f_values.maxCoeff();
 }
 
 Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(
@@ -167,6 +229,33 @@ void CoordinationController::computeAlignVirtualSticks(
   obj2 = p2 * obj_in_eef_[RIGHT];
   tf::vectorKDLToEigen(obj1.p - p1.p, r1);
   tf::vectorKDLToEigen(obj2.p - p2.p, r2);
+}
+
+geometry_msgs::Pose CoordinationController::computeAbsolutePose(
+    const sensor_msgs::JointState &state) const
+{
+  KDL::Frame p1, p2;
+  Eigen::Quaterniond ori1, ori2;
+
+  alg_->kdl_manager_->getGrippingPoint(alg_->eef1_, state, p1);
+  alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, state, p2);
+  p1 = p1 * obj_in_eef_.at(LEFT);
+  p2 = p2 * obj_in_eef_.at(RIGHT);
+  tf::quaternionKDLToEigen(p1.M, ori1);
+  tf::quaternionKDLToEigen(p2.M, ori2);
+
+  Eigen::Matrix3d r1 = ori1.toRotationMatrix();
+  Eigen::Matrix3d r2 = ori2.toRotationMatrix();
+  Eigen::Matrix3d rel = r1.transpose() * r2;
+  Eigen::AngleAxisd rel_aa(rel);
+  Eigen::AngleAxisd abs_aa(rel_aa.angle() / 2, rel_aa.axis());
+  Eigen::Matrix3d r_abs = r1;  // * abs_aa.toRotationMatrix();
+  Eigen::Quaterniond q(r_abs);
+
+  geometry_msgs::Pose p_avg;
+  tf::pointKDLToMsg((p1.p + p2.p) / 2, p_avg.position);
+  tf::quaternionEigenToMsg(q, p_avg.orientation);
+  return p_avg;
 }
 
 void CoordinationController::computeTwistVirtualSticks(
@@ -398,6 +487,37 @@ bool CoordinationController::init()
   if (!nh_.getParam("right_obj_frame", obj_frame_[RIGHT]))
   {
     ROS_ERROR("Missing right_obj_frame parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/upper_limits", pose_upper_ct_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/upper_limits parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/upper_thresholds", pose_upper_thr_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/upper_thresholds parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/lower_limits", pose_lower_ct_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/lower_limits parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/lower_thresholds", pose_lower_thr_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/lower_thresholds parameter");
+    return false;
+  }
+
+  if (pose_upper_ct_.size() != 6 || pose_upper_thr_.size() != 6 ||
+      pose_lower_ct_.size() != 6 || pose_lower_thr_.size() != 6)
+  {
+    ROS_ERROR("The absolute pose limits must all be vectors of length 6!");
     return false;
   }
 

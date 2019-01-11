@@ -19,18 +19,6 @@ class ExtRelJac : public AlgorithmBase
                           const Vector6d &abs_twist, const Vector6d &rel_twist);
 
  private:
-  /**
-   Compute alpha such that the current absolute pose (in the base frame) remains
-   within user-specified bounds.
-
-   @param abs_pose The current absolute position of the system.
-   @param Ji Manipulators' Jacobians.
-   @returns The new value for alpha, setting how the manipulators will cooperate
-  in the relative motion task.
-  **/
-  double computeAlpha(const geometry_msgs::Pose &abs_pose,
-                      const Eigen::MatrixXd &J1,
-                      const Eigen::MatrixXd &J2) const;
 };
 }  // namespace coordination_algorithms
 

@@ -55,6 +55,8 @@ class CoordinationController
   ros::ServiceClient reset_client_;
   ros::Subscriber twist_sub_;
   ros::Time init_time_;
+  std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
+      pose_lower_thr_;
 
   /**
     Initialize experiment parameters. This will set up rigid transforms between
@@ -78,6 +80,27 @@ class CoordinationController
   **/
   Eigen::Matrix<double, 6, 1> computeAlignRelativeTwist(
       const sensor_msgs::JointState &state);
+
+  /**
+    Compute the (symmetric) absolute pose of the two manipulators.
+
+    @param state The current dual-arm system joint state.
+  **/
+  geometry_msgs::Pose computeAbsolutePose(
+      const sensor_msgs::JointState &state) const;
+
+  /**
+    Compute alpha such that the current absolute pose (in the base frame)
+    remains within user-specified bounds.
+
+    @param abs_pose The current absolute position of the system.
+    @param Ji Manipulators' Jacobians.
+    @returns The new value for alpha, setting how the manipulators will
+    cooperate in the relative motion task.
+  **/
+  double computeAlpha(const geometry_msgs::Pose &abs_pose,
+                      const Eigen::MatrixXd &J1,
+                      const Eigen::MatrixXd &J2) const;
 
   /**
     Compute the virtual sticks for an align task.

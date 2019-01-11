@@ -2,6 +2,7 @@
 #define __ALGORITHM_BASE__
 
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 #include <generic_control_toolbox/kdl_manager.hpp>
 
 namespace coordination_algorithms
@@ -29,12 +30,21 @@ class AlgorithmBase
   ~AlgorithmBase() {}
 
   /**
-    Interface control method.
-  **/
-  Eigen::VectorXd controlAlgorithm(const sensor_msgs::JointState &state,
-                                   const Vector3d &r1, const Vector3d &r2,
-                                   const Vector6d &abs_twist,
-                                   const Vector6d &rel_twist);
+  Implement the coordination algorithm. Given reference absolute and relative
+twists for a given task frame, solve the inverse differential kinematics to
+obtain joint velocities for the two manipulators.
+
+  @param state The dual-arm manipulator joint state.
+  @param r1 The virtual stick connecting eef_1 to the task frame.
+  @param r2 The virtual stick connecting eef_2 to the task frame.
+  @param abs_twist The absolute motion twist in the task frame.
+  @param rel_twist The relative motion twist in the task frame.
+  @returns The resolved joint velocities for the two manipulators.
+**/
+  virtual Eigen::VectorXd control(const sensor_msgs::JointState &state,
+                                  const Vector3d &r1, const Vector3d &r2,
+                                  const Vector6d &abs_twist,
+                                  const Vector6d &rel_twist) = 0;
 
   /**
     Allows derived classes to obtain the required data for their secundary
@@ -49,10 +59,10 @@ class AlgorithmBase
 
   std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
   std::string eef1_, eef2_;
+  std::string base_;
 
  protected:
   ros::NodeHandle nh_;
-  std::string base_;
   double alpha_, damping_;
 
   /**
@@ -72,23 +82,6 @@ class AlgorithmBase
   bool setArm(const std::string &arm_name, std::string &eef_name);
 
   /**
-    Implement the coordination algorithm. Given reference absolute and relative
-  twists for a given task frame, solve the inverse differential kinematics to
-  obtain joint velocities for the two manipulators.
-
-    @param state The dual-arm manipulator joint state.
-    @param r1 The virtual stick connecting eef_1 to the task frame.
-    @param r2 The virtual stick connecting eef_2 to the task frame.
-    @param abs_twist The absolute motion twist in the task frame.
-    @param rel_twist The relative motion twist in the task frame.
-    @returns The resolved joint velocities for the two manipulators.
-  **/
-  virtual Eigen::VectorXd control(const sensor_msgs::JointState &state,
-                                  const Vector3d &r1, const Vector3d &r2,
-                                  const Vector6d &abs_twist,
-                                  const Vector6d &rel_twist) = 0;
-
-  /**
     Compute the wrench conversion matrix which maps twists in the task frames to
     eef twists.
 
@@ -96,17 +89,6 @@ class AlgorithmBase
     @param r2 Virtual stick connecting eef2 to its corresponding task frame.
   **/
   Matrix12d computeW(const Vector3d &r1, const Vector3d &r2) const;
-
-  /**
-    Compute the (symmetric) absolute pose of the two manipulators.
-
-    @param state The current dual-arm system joint state.
-  **/
-  geometry_msgs::Pose computeAbsolutePose(
-      const sensor_msgs::JointState &state) const;
-
-  std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
-      pose_lower_thr_;
 };
 }  // namespace coordination_algorithms
 
