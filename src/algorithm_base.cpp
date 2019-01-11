@@ -72,6 +72,8 @@ geometry_msgs::Pose AlgorithmBase::computeAbsolutePose(
 
   kdl_manager_->getGrippingPoint(eef1_, state, p1);
   kdl_manager_->getGrippingPoint(eef2_, state, p2);
+  tf::transformKDLToEigen(p1, p1_eig);
+  tf::transformKDLToEigen(p2, p2_eig);
 
   Eigen::Vector3d avg_pos = (p1_eig.translation() + p2_eig.translation()) / 2;
   Eigen::Matrix3d r1 = p1_eig.matrix().block<3, 3>(0, 0);
@@ -80,12 +82,11 @@ geometry_msgs::Pose AlgorithmBase::computeAbsolutePose(
   Eigen::AngleAxisd rel_aa(rel);
   Eigen::AngleAxisd abs_aa(rel_aa.angle() / 2, rel_aa.axis());
   Eigen::Matrix3d r_abs = r1 * abs_aa.toRotationMatrix();
-  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
 
-  T.block<3, 3>(0, 0) = r_abs;
-  T.block<3, 1>(3, 0) = avg_pos;
+  Eigen::Affine3d avg_eig;
+  avg_eig.translate(avg_pos);
+  avg_eig.rotate(r_abs);
 
-  Eigen::Affine3d avg_eig(T);
   geometry_msgs::Pose p_avg;
   tf::poseEigenToMsg(avg_eig, p_avg);
   return p_avg;

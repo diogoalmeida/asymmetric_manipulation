@@ -5,6 +5,12 @@ loop_rate: 1000
 left_obj_frame: left_object
 right_obj_frame: right_object
 
+absolute_pose_limits:
+  upper_limits: [100, 100, 100, 100, 100, 100]
+  upper_thresholds: [90, 90, 90, 90, 90, 90]
+  lower_limits: [-100, -100, -100, -100, -100, -100]
+  lower_thresholds: [-90, -90, -90, -90, -90, -90]
+
 relative_gain:
   data: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
          0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
