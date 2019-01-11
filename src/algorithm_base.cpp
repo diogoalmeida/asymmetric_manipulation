@@ -18,6 +18,37 @@ bool AlgorithmBase::init()
     return false;
   }
 
+  if (!nh_.getParam("absolute_pose_limits/upper_limits", pose_upper_ct_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/upper_limits parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/upper_thresholds", pose_upper_thr_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/upper_thresholds parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/lower_limits", pose_lower_ct_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/lower_limits parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_pose_limits/lower_thresholds", pose_lower_thr_))
+  {
+    ROS_ERROR("Missing absolute_pose_limits/lower_thresholds parameter");
+    return false;
+  }
+
+  if (pose_upper_ct_.size() != 6 || pose_upper_thr_.size() != 6 ||
+      pose_lower_ct_.size() != 6 || pose_lower_thr_.size() != 6)
+  {
+    ROS_ERROR("The absolute pose limits must all be vectors of length 6!");
+    return false;
+  }
+
   kdl_manager_ = std::make_shared<generic_control_toolbox::KDLManager>(base_);
 
   if (!setArm("eef1", eef1_))

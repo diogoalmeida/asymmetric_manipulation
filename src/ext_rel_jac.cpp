@@ -26,7 +26,6 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
            r2_conv = r2 + p2_eig.translation() - eef2_eig.translation();
 
   Matrix12d W = computeW(r1_conv, r2_conv);
-  double scaling = 1 / ((1 - alpha_) * (1 - alpha_) + alpha_ * alpha_);
   MatrixRelLinkingd L_asym = MatrixRelLinkingd::Zero(),
                     L_sim = MatrixRelLinkingd::Zero();
   KDL::Jacobian J1_kdl, J2_kdl;
@@ -39,6 +38,9 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
   J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
 
+  alpha_ = computeAlpha(computeAbsolutePose(state), J1_kdl.data, J2_kdl.data);
+
+  double scaling = 1 / ((1 - alpha_) * (1 - alpha_) + alpha_ * alpha_);
   L_asym.block<6, 6>(0, 0) = -(1 - alpha_) * scaling * Matrix6d::Identity();
   L_asym.block<6, 6>(0, 6) = alpha_ * scaling * Matrix6d::Identity();
 
@@ -60,5 +62,55 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
 
   return qdot_sym +
          (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_asym;
+}
+
+double ExtRelJac::computeAlpha(const geometry_msgs::Pose &abs_pose,
+                               const Eigen::MatrixXd &J1,
+                               const Eigen::MatrixXd &J2) const
+{
+  Vector6d pose_eig;
+  Vector6d f_values;
+  Eigen::Vector3d position_eig;
+  Eigen::Quaterniond orientation_eig;
+
+  tf::pointMsgToEigen(abs_pose.position, position_eig);
+  tf::quaternionMsgToEigen(abs_pose.orientation, orientation_eig);
+  pose_eig.block<3, 1>(0, 0) = position_eig;
+  pose_eig.block<3, 1>(3, 0) =
+      orientation_eig.toRotationMatrix().eulerAngles(0, 1, 2);
+
+  double d = 0;
+  for (unsigned int i = 0; i < 6; i++)
+  {
+    if (pose_eig[i] < pose_lower_thr_[i])
+    {
+      d = fabs(pose_lower_thr_[i] - pose_eig[i]) /
+          fabs(pose_lower_thr_[i] - pose_lower_ct_[i]);
+    }
+    else if (pose_eig[i] > pose_upper_thr_[i])
+    {
+      d = fabs(pose_upper_thr_[i] - pose_eig[i]) /
+          fabs(pose_upper_thr_[i] - pose_upper_ct_[i]);
+    }
+    else
+    {
+      f_values[i] = 0.0;
+      continue;
+    }
+
+    f_values[i] = 1.5 * d * d - d * d * d;
+  }
+
+  double mu1, mu2;
+
+  mu1 = sqrt((J1 * J1.transpose()).determinant());
+  mu2 = sqrt((J2 * J2.transpose()).determinant());
+
+  if (mu2 > mu1)
+  {
+    return 0.5 + f_values.maxCoeff();
+  }
+
+  return 0.5 - f_values.maxCoeff();
 }
 }  // namespace coordination_algorithms

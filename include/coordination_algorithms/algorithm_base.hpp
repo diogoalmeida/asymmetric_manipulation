@@ -96,6 +96,9 @@ class AlgorithmBase
   **/
   geometry_msgs::Pose computeAbsolutePose(
       const sensor_msgs::JointState &state) const;
+
+  std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
+      pose_lower_thr_;
 };
 }  // namespace coordination_algorithms
 
