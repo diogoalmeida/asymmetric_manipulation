@@ -82,8 +82,11 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   alg_->kdl_manager_->getJacobian(alg_->eef1_, current_state, J1_kdl);
   alg_->kdl_manager_->getJacobian(alg_->eef2_, current_state, J2_kdl);
 
-  double alpha = computeAlpha(absolute_pose, J1_kdl.data, J2_kdl.data);
-  // alg_->setAlpha(alpha);
+  if (dynamic_alpha_)
+  {
+    double alpha = computeAlpha(absolute_pose, J1_kdl.data, J2_kdl.data);
+    alg_->setAlpha(alpha);
+  }
 
   Eigen::VectorXd joint_velocities =
       alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
@@ -169,10 +172,10 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
   mu1 = sqrt((J1 * J1.transpose()).determinant());
   mu2 = sqrt((J2 * J2.transpose()).determinant());
 
-  if (mu2 > mu1)
-  {
-    return 0.5 + f_values.maxCoeff();
-  }
+  // if (mu2 > mu1)
+  // {
+  //   return 0.5 + f_values.maxCoeff();
+  // }
 
   return 0.5 - f_values.maxCoeff();
 }
@@ -327,13 +330,18 @@ bool CoordinationController::parseGoal(
       .sleep();  // let the controller get the updated simulation joint state
   ros::spinOnce();
 
-  if (goal->alpha < 0 || goal->alpha > 1)
-  {
-    ROS_ERROR("Alpha must be between 0 and 1");
-    return false;
-  }
+  dynamic_alpha_ = goal->dynamic_alpha;
 
-  alg_->setAlpha(goal->alpha);
+  if (!dynamic_alpha_)
+  {
+    if (goal->alpha < 0 || goal->alpha > 1)
+    {
+      ROS_ERROR("Alpha must be between 0 and 1");
+      return false;
+    }
+
+    alg_->setAlpha(goal->alpha);
+  }
 
   if (!alg_->kdl_manager_->getNumJoints(alg_->eef1_, num_joints_[LEFT]))
   {

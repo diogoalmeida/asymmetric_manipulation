@@ -49,7 +49,7 @@ class CoordinationController
   Eigen::MatrixXd Kp_r_;
   Eigen::VectorXd q1_init_, q2_init_;
   Eigen::Matrix<double, 6, 1> commanded_rel_twist_;
-  bool newGoal_;
+  bool newGoal_, dynamic_alpha_;
   int max_tf_attempts_;
   ControlType control_type_;
   ros::ServiceClient reset_client_;
