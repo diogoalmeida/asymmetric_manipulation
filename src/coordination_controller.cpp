@@ -88,6 +88,8 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
     alg_->setAlpha(alpha);
   }
 
+  updateOrientationTransform(current_state);
+
   Eigen::VectorXd joint_velocities =
       alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
 
@@ -128,6 +130,20 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
       joint_velocities.block(num_joints_[LEFT], 0, num_joints_[RIGHT], 1), ret);
 
   return ret;
+}
+
+void CoordinationController::updateOrientationTransform(
+    const sensor_msgs::JointState &state)
+{
+  geometry_msgs::Pose abs_pose = computeAbsolutePose(state);
+
+  tf::Transform transform;
+  transform.setOrigin(tf::Vector3(abs_pose.position.x, abs_pose.position.y,
+                                  abs_pose.position.z));
+  tf::Quaternion q(0, 0, 0, 1);
+  transform.setRotation(q);
+  broadcaster_.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
+                                                  base_, "/orientation_frame"));
 }
 
 double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
@@ -522,8 +538,7 @@ bool CoordinationController::init()
     return false;
   }
 
-  std::string base;
-  if (!nh_.getParam("kinematic_chain_base_link", base))
+  if (!nh_.getParam("kinematic_chain_base_link", base_))
   {
     ROS_ERROR("Missing kinematic_chain_base_link parameter");
     return false;
@@ -556,11 +571,17 @@ bool CoordinationController::init()
   }
 
   reset_client_ = nh_.serviceClient<std_srvs::Empty>("/state_reset");
-  visual_tools_.reset(
-      new rviz_visual_tools::RvizVisualTools(base, "/workspace_limits"));
-  visual_tools_->loadMarkerPub(false, true);
-  visual_tools_->deleteAllMarkers();
-  visual_tools_->enableBatchPublishing();
+  pos_ws_pub_.reset(
+      new rviz_visual_tools::RvizVisualTools(base_, "/workspace_pos_limits"));
+  ori_ws_pub_.reset(new rviz_visual_tools::RvizVisualTools(
+      "/orientation_frame", "/workspace_ori_limits"));
+  ori_ws_pub_->loadMarkerPub(false, true);
+  ori_ws_pub_->enableFrameLocking(true);
+  pos_ws_pub_->loadMarkerPub(false, true);
+  ori_ws_pub_->deleteAllMarkers();
+  pos_ws_pub_->deleteAllMarkers();
+  ori_ws_pub_->enableBatchPublishing();
+  pos_ws_pub_->enableBatchPublishing();
 
   // publish workspace limits. TODO: parameterize?
   Eigen::Isometry3d min_lims = Eigen::Isometry3d::Identity();
@@ -574,10 +595,25 @@ bool CoordinationController::init()
   min_lims.translation().y() = pose_lower_ct_[1];
   min_lims.translation().z() = pose_lower_ct_[2];
 
-  visual_tools_->setAlpha(limit_alpha);
-  visual_tools_->publishCuboid(min_lims.translation(), max_lims.translation(),
-                               rviz_visual_tools::RAND);
-  visual_tools_->trigger();
+  pos_ws_pub_->setAlpha(limit_alpha);
+  ori_ws_pub_->setAlpha(limit_alpha);
+  pos_ws_pub_->publishCuboid(min_lims.translation(), max_lims.translation(),
+                             rviz_visual_tools::RAND);
+  pos_ws_pub_->trigger();
+
+  geometry_msgs::Pose lim_x, lim_y, lim_z;
+
+  lim_x.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+  lim_y.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, M_PI / 2);
+  lim_z.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -M_PI / 2, 0);
+
+  ori_ws_pub_->publishCone(lim_x, pose_upper_ct_[3], rviz_visual_tools::RED,
+                           0.1);
+  ori_ws_pub_->publishCone(lim_y, pose_upper_ct_[4], rviz_visual_tools::GREEN,
+                           0.1);
+  ori_ws_pub_->publishCone(lim_z, pose_upper_ct_[5], rviz_visual_tools::BLUE,
+                           0.1);
+  ori_ws_pub_->trigger();
 
   newGoal_ = true;
   return true;

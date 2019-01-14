@@ -58,7 +58,9 @@ class CoordinationController
   ros::Time init_time_;
   std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
       pose_lower_thr_;
-  rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
+  rviz_visual_tools::RvizVisualToolsPtr pos_ws_pub_;
+  rviz_visual_tools::RvizVisualToolsPtr ori_ws_pub_;
+  std::string base_;
 
   /**
     Initialize experiment parameters. This will set up rigid transforms between
@@ -76,6 +78,13 @@ class CoordinationController
   bool initializeObjectFrames();
 
   void twistCommandCb(const geometry_msgs::TwistStamped::ConstPtr &msg);
+
+  /**
+    Publishes updates the frame where orientation limits are displayed.
+
+    @param state Current joint state.
+  **/
+  void updateOrientationTransform(const sensor_msgs::JointState &state);
 
   /**
     Compute the relative motion twist for an align task.
