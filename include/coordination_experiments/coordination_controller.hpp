@@ -1,5 +1,5 @@
-#ifndef __ECTS_CONTROLLER__
-#define __ECTS_CONTROLLER__
+#ifndef __COORDINATION_CONTROLLER__
+#define __COORDINATION_CONTROLLER__
 
 #include <coordination_experiments/CoordinationControllerAction.h>
 #include <ros/ros.h>

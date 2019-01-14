@@ -172,10 +172,10 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
   mu1 = sqrt((J1 * J1.transpose()).determinant());
   mu2 = sqrt((J2 * J2.transpose()).determinant());
 
-  // if (mu2 > mu1)
-  // {
-  //   return 0.5 + f_values.maxCoeff();
-  // }
+  if (mu2 > mu1)
+  {
+    return 0.5 + f_values.maxCoeff();
+  }
 
   return 0.5 - f_values.maxCoeff();
 }
