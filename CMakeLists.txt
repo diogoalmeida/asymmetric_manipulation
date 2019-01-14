@@ -11,6 +11,7 @@ find_package(
   message_generation
   baxter_description
   robot_kinematic_simulation
+  rviz_visual_tools
   object_server
 )
 

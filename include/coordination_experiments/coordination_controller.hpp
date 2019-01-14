@@ -3,6 +3,7 @@
 
 #include <coordination_experiments/CoordinationControllerAction.h>
 #include <ros/ros.h>
+#include <rviz_visual_tools/rviz_visual_tools.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
@@ -57,6 +58,7 @@ class CoordinationController
   ros::Time init_time_;
   std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
       pose_lower_thr_;
+  rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
 
   /**
     Initialize experiment parameters. This will set up rigid transforms between

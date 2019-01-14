@@ -522,6 +522,20 @@ bool CoordinationController::init()
     return false;
   }
 
+  std::string base;
+  if (!nh_.getParam("kinematic_chain_base_link", base))
+  {
+    ROS_ERROR("Missing kinematic_chain_base_link parameter");
+    return false;
+  }
+
+  double limit_alpha;
+  if (!nh_.getParam("workspace_limits_marker_alpha", limit_alpha))
+  {
+    ROS_ERROR("Missing workspace_limits_marker_alpha parameter");
+    return false;
+  }
+
   if (pose_upper_ct_.size() != 6 || pose_upper_thr_.size() != 6 ||
       pose_lower_ct_.size() != 6 || pose_lower_thr_.size() != 6)
   {
@@ -542,6 +556,28 @@ bool CoordinationController::init()
   }
 
   reset_client_ = nh_.serviceClient<std_srvs::Empty>("/state_reset");
+  visual_tools_.reset(
+      new rviz_visual_tools::RvizVisualTools(base, "/workspace_limits"));
+  visual_tools_->loadMarkerPub(false, true);
+  visual_tools_->deleteAllMarkers();
+  visual_tools_->enableBatchPublishing();
+
+  // publish workspace limits. TODO: parameterize?
+  Eigen::Isometry3d min_lims = Eigen::Isometry3d::Identity();
+  Eigen::Isometry3d max_lims = Eigen::Isometry3d::Identity();
+
+  max_lims.translation().x() = pose_upper_ct_[0];
+  max_lims.translation().y() = pose_upper_ct_[1];
+  max_lims.translation().z() = pose_upper_ct_[2];
+
+  min_lims.translation().x() = pose_lower_ct_[0];
+  min_lims.translation().y() = pose_lower_ct_[1];
+  min_lims.translation().z() = pose_lower_ct_[2];
+
+  visual_tools_->setAlpha(limit_alpha);
+  visual_tools_->publishCuboid(min_lims.translation(), max_lims.translation(),
+                               rviz_visual_tools::RAND);
+  visual_tools_->trigger();
 
   newGoal_ = true;
   return true;
