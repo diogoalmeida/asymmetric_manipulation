@@ -6,11 +6,18 @@ left_obj_frame: left_object
 right_obj_frame: right_object
 
 workspace_limits_marker_alpha: 0.5
-absolute_pose_limits:
-  upper_limits: [0.6, 0.6, 0.6, 1.57, 1.57, 1.57]
-  upper_thresholds: [0.50, 0.5, 0.5, 90, 90, 90]
-  lower_limits: [0.3, -0.6, 0.0, -100, -100, -100]
-  lower_thresholds: [0.4, -0.5, 0.1, -90, -90, -90]
+
+absolute_position_limits: # limits as [x, y, z]
+  upper_limits: [0.6, 0.6, 0.6]
+  upper_thresholds: [0.50, 0.5, 0.5]
+  lower_limits: [0.3, -0.6, 0.0]
+  lower_thresholds: [0.4, -0.5, 0.1]
+
+absolute_orientation_limits: # limits in terms of maximum allowed angle between
+                             # x, y and z axes of absolute frame w.r.t base
+                             # frame
+  limits: [1.7, 0.7, 0.7]
+  thresholds: [0.0, 0.0, 0.0]
 
 relative_gain:
   data: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0,

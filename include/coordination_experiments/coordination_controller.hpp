@@ -56,8 +56,8 @@ class CoordinationController
   ros::ServiceClient reset_client_;
   ros::Subscriber twist_sub_;
   ros::Time init_time_;
-  std::vector<double> pose_upper_ct_, pose_upper_thr_, pose_lower_ct_,
-      pose_lower_thr_;
+  std::vector<double> pos_upper_ct_, pos_upper_thr_, pos_lower_ct_,
+      pos_lower_thr_, ori_ct_, ori_thr_;
   rviz_visual_tools::RvizVisualToolsPtr pos_ws_pub_;
   rviz_visual_tools::RvizVisualToolsPtr ori_ws_pub_;
   std::string base_;

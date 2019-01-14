@@ -162,17 +162,17 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
       orientation_eig.toRotationMatrix().eulerAngles(0, 1, 2);
 
   double d = 0;
-  for (unsigned int i = 0; i < 6; i++)
+  for (unsigned int i = 0; i < 3; i++)
   {
-    if (pose_eig[i] < pose_lower_thr_[i])
+    if (pose_eig[i] < pos_lower_thr_[i])
     {
-      d = fabs(pose_lower_thr_[i] - pose_eig[i]) /
-          fabs(pose_lower_thr_[i] - pose_lower_ct_[i]);
+      d = fabs(pos_lower_thr_[i] - pose_eig[i]) /
+          fabs(pos_lower_thr_[i] - pos_lower_ct_[i]);
     }
-    else if (pose_eig[i] > pose_upper_thr_[i])
+    else if (pose_eig[i] > pos_upper_thr_[i])
     {
-      d = fabs(pose_upper_thr_[i] - pose_eig[i]) /
-          fabs(pose_upper_thr_[i] - pose_upper_ct_[i]);
+      d = fabs(pos_upper_thr_[i] - pose_eig[i]) /
+          fabs(pos_upper_thr_[i] - pos_upper_ct_[i]);
     }
     else
     {
@@ -181,6 +181,17 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
     }
 
     f_values[i] = 1.5 * d * d - d * d * d;
+
+    if (pose_eig[i + 3] > ori_thr_[i])
+    {
+      d = fabs(ori_thr_[i] - pose_eig[i + 3]) / fabs(ori_thr_[i] - ori_ct_[i]);
+    }
+    else
+    {
+      f_values[i + 3] = 0.0;
+    }
+
+    f_values[i + 3] = 1.5 * d * d - d * d * d;
   }
 
   double mu1, mu2;
@@ -514,27 +525,41 @@ bool CoordinationController::init()
     return false;
   }
 
-  if (!nh_.getParam("absolute_pose_limits/upper_limits", pose_upper_ct_))
+  if (!nh_.getParam("absolute_position_limits/upper_limits", pos_upper_ct_))
   {
-    ROS_ERROR("Missing absolute_pose_limits/upper_limits parameter");
+    ROS_ERROR("Missing absolute_position_limits/upper_limits parameter");
     return false;
   }
 
-  if (!nh_.getParam("absolute_pose_limits/upper_thresholds", pose_upper_thr_))
+  if (!nh_.getParam("absolute_position_limits/upper_thresholds",
+                    pos_upper_thr_))
   {
-    ROS_ERROR("Missing absolute_pose_limits/upper_thresholds parameter");
+    ROS_ERROR("Missing absolute_position_limits/upper_thresholds parameter");
     return false;
   }
 
-  if (!nh_.getParam("absolute_pose_limits/lower_limits", pose_lower_ct_))
+  if (!nh_.getParam("absolute_position_limits/lower_limits", pos_lower_ct_))
   {
-    ROS_ERROR("Missing absolute_pose_limits/lower_limits parameter");
+    ROS_ERROR("Missing absolute_position_limits/lower_limits parameter");
     return false;
   }
 
-  if (!nh_.getParam("absolute_pose_limits/lower_thresholds", pose_lower_thr_))
+  if (!nh_.getParam("absolute_position_limits/lower_thresholds",
+                    pos_lower_thr_))
   {
-    ROS_ERROR("Missing absolute_pose_limits/lower_thresholds parameter");
+    ROS_ERROR("Missing absolute_position_limits/lower_thresholds parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_orientation_limits/limits", ori_ct_))
+  {
+    ROS_ERROR("Missing absolute_orientation_limits/limits");
+    return false;
+  }
+
+  if (!nh_.getParam("absolute_orientation_limits/thresholds", ori_thr_))
+  {
+    ROS_ERROR("Missing absolute_orientation_limits/thresholds");
     return false;
   }
 
@@ -551,10 +576,17 @@ bool CoordinationController::init()
     return false;
   }
 
-  if (pose_upper_ct_.size() != 6 || pose_upper_thr_.size() != 6 ||
-      pose_lower_ct_.size() != 6 || pose_lower_thr_.size() != 6)
+  if (pos_upper_ct_.size() != 3 || pos_upper_thr_.size() != 3 ||
+      pos_lower_ct_.size() != 3 || pos_lower_thr_.size() != 3)
   {
-    ROS_ERROR("The absolute pose limits must all be vectors of length 6!");
+    ROS_ERROR("The absolute position limits must all be vectors of length 3!");
+    return false;
+  }
+
+  if (ori_ct_.size() != 3 || ori_thr_.size() != 3)
+  {
+    ROS_ERROR(
+        "The absolute orientation limits must all be vectors of length 3");
     return false;
   }
 
@@ -587,13 +619,13 @@ bool CoordinationController::init()
   Eigen::Isometry3d min_lims = Eigen::Isometry3d::Identity();
   Eigen::Isometry3d max_lims = Eigen::Isometry3d::Identity();
 
-  max_lims.translation().x() = pose_upper_ct_[0];
-  max_lims.translation().y() = pose_upper_ct_[1];
-  max_lims.translation().z() = pose_upper_ct_[2];
+  max_lims.translation().x() = pos_upper_ct_[0];
+  max_lims.translation().y() = pos_upper_ct_[1];
+  max_lims.translation().z() = pos_upper_ct_[2];
 
-  min_lims.translation().x() = pose_lower_ct_[0];
-  min_lims.translation().y() = pose_lower_ct_[1];
-  min_lims.translation().z() = pose_lower_ct_[2];
+  min_lims.translation().x() = pos_lower_ct_[0];
+  min_lims.translation().y() = pos_lower_ct_[1];
+  min_lims.translation().z() = pos_lower_ct_[2];
 
   pos_ws_pub_->setAlpha(limit_alpha);
   ori_ws_pub_->setAlpha(limit_alpha);
@@ -607,11 +639,11 @@ bool CoordinationController::init()
   lim_y.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, M_PI / 2);
   lim_z.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -M_PI / 2, 0);
 
-  ori_ws_pub_->publishCone(lim_x, pose_upper_ct_[3], rviz_visual_tools::RED,
+  ori_ws_pub_->publishCone(lim_x, M_PI - ori_ct_[0], rviz_visual_tools::RED,
                            0.1);
-  ori_ws_pub_->publishCone(lim_y, pose_upper_ct_[4], rviz_visual_tools::GREEN,
+  ori_ws_pub_->publishCone(lim_y, M_PI - ori_ct_[1], rviz_visual_tools::GREEN,
                            0.1);
-  ori_ws_pub_->publishCone(lim_z, pose_upper_ct_[5], rviz_visual_tools::BLUE,
+  ori_ws_pub_->publishCone(lim_z, M_PI - ori_ct_[2], rviz_visual_tools::BLUE,
                            0.1);
   ori_ws_pub_->trigger();
 
