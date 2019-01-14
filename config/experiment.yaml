@@ -16,7 +16,7 @@ absolute_position_limits: # limits as [x, y, z]
 absolute_orientation_limits: # limits in terms of maximum allowed angle between
                              # x, y and z axes of absolute frame w.r.t base
                              # frame
-  limits: [1.7, 0.7, 0.7]
+  limits: [0.3, 0.3, 0.3]
   thresholds: [0.0, 0.0, 0.0]
 
 relative_gain:

@@ -154,16 +154,24 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
   coordination_algorithms::Vector6d f_values;
   Eigen::Vector3d position_eig;
   Eigen::Quaterniond orientation_eig;
+  Eigen::Affine3d abs_eig;
 
   tf::pointMsgToEigen(abs_pose.position, position_eig);
-  tf::quaternionMsgToEigen(abs_pose.orientation, orientation_eig);
+  tf::poseMsgToEigen(abs_pose, abs_eig);
   pose_eig.block<3, 1>(0, 0) = position_eig;
-  pose_eig.block<3, 1>(3, 0) =
-      orientation_eig.toRotationMatrix().eulerAngles(0, 1, 2);
+  pose_eig[3] =
+      acos(abs_eig.matrix().block<3, 1>(0, 0).dot(Eigen::Vector3d::UnitX()));
+  pose_eig[4] =
+      acos(abs_eig.matrix().block<3, 1>(0, 1).dot(Eigen::Vector3d::UnitY()));
+  pose_eig[5] =
+      acos(abs_eig.matrix().block<3, 1>(0, 2).dot(Eigen::Vector3d::UnitZ()));
+
+  ROS_INFO_STREAM("Pose_eig: " << pose_eig);
 
   double d = 0;
   for (unsigned int i = 0; i < 3; i++)
   {
+    d = 0;
     if (pose_eig[i] < pos_lower_thr_[i])
     {
       d = fabs(pos_lower_thr_[i] - pose_eig[i]) /
@@ -174,21 +182,13 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
       d = fabs(pos_upper_thr_[i] - pose_eig[i]) /
           fabs(pos_upper_thr_[i] - pos_upper_ct_[i]);
     }
-    else
-    {
-      f_values[i] = 0.0;
-      continue;
-    }
 
     f_values[i] = 1.5 * d * d - d * d * d;
 
+    d = 0;
     if (pose_eig[i + 3] > ori_thr_[i])
     {
       d = fabs(ori_thr_[i] - pose_eig[i + 3]) / fabs(ori_thr_[i] - ori_ct_[i]);
-    }
-    else
-    {
-      f_values[i + 3] = 0.0;
     }
 
     f_values[i + 3] = 1.5 * d * d - d * d * d;
