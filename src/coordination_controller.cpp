@@ -82,11 +82,7 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   alg_->kdl_manager_->getJacobian(alg_->eef1_, current_state, J1_kdl);
   alg_->kdl_manager_->getJacobian(alg_->eef2_, current_state, J2_kdl);
 
-  if (dynamic_alpha_)
-  {
-    double alpha = computeAlpha(absolute_pose, J1_kdl.data, J2_kdl.data);
-    alg_->setAlpha(alpha);
-  }
+  alg_->setAbsolutePose(absolute_pose);
 
   updateOrientationTransform(current_state);
 
@@ -144,65 +140,6 @@ void CoordinationController::updateOrientationTransform(
   transform.setRotation(q);
   broadcaster_.sendTransform(tf::StampedTransform(transform, ros::Time::now(),
                                                   base_, "/orientation_frame"));
-}
-
-double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
-                                            const Eigen::MatrixXd &J1,
-                                            const Eigen::MatrixXd &J2) const
-{
-  coordination_algorithms::Vector6d pose_eig;
-  coordination_algorithms::Vector6d f_values;
-  Eigen::Vector3d position_eig;
-  Eigen::Quaterniond orientation_eig;
-  Eigen::Affine3d abs_eig;
-
-  tf::pointMsgToEigen(abs_pose.position, position_eig);
-  tf::poseMsgToEigen(abs_pose, abs_eig);
-  pose_eig.block<3, 1>(0, 0) = position_eig;
-  pose_eig[3] =
-      acos(abs_eig.matrix().block<3, 1>(0, 0).dot(Eigen::Vector3d::UnitX()));
-  pose_eig[4] =
-      acos(abs_eig.matrix().block<3, 1>(0, 1).dot(Eigen::Vector3d::UnitY()));
-  pose_eig[5] =
-      acos(abs_eig.matrix().block<3, 1>(0, 2).dot(Eigen::Vector3d::UnitZ()));
-
-  double d = 0;
-  for (unsigned int i = 0; i < 3; i++)
-  {
-    d = 0;
-    if (pose_eig[i] < pos_lower_thr_[i])
-    {
-      d = fabs(pos_lower_thr_[i] - pose_eig[i]) /
-          fabs(pos_lower_thr_[i] - pos_lower_ct_[i]);
-    }
-    else if (pose_eig[i] > pos_upper_thr_[i])
-    {
-      d = fabs(pos_upper_thr_[i] - pose_eig[i]) /
-          fabs(pos_upper_thr_[i] - pos_upper_ct_[i]);
-    }
-
-    f_values[i] = 1.5 * d * d - d * d * d;
-
-    d = 0;
-    if (pose_eig[i + 3] > ori_thr_[i])
-    {
-      d = fabs(ori_thr_[i] - pose_eig[i + 3]) / fabs(ori_thr_[i] - ori_ct_[i]);
-    }
-
-    f_values[i + 3] = 1.5 * d * d - d * d * d;
-  }
-
-  double mu1, mu2;
-
-  mu1 = sqrt((J1 * J1.transpose()).determinant());
-  mu2 = sqrt((J2 * J2.transpose()).determinant());
-
-  if (mu2 > mu1)
-  {
-    return 0.5 + f_values.maxCoeff();
-  }
-
-  return 0.5 - f_values.maxCoeff();
 }
 
 Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(
@@ -325,7 +262,9 @@ bool CoordinationController::parseGoal(
       return false;
     }
 
-    alg_ = std::make_shared<coordination_algorithms::ECTS>();
+    alg_ = std::make_shared<coordination_algorithms::ECTS>(
+        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
+        ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.EXTRELJAC)
   {
@@ -334,7 +273,9 @@ bool CoordinationController::parseGoal(
       return false;
     }
 
-    alg_ = std::make_shared<coordination_algorithms::ExtRelJac>();
+    alg_ = std::make_shared<coordination_algorithms::ExtRelJac>(
+        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
+        ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJAC)
   {
@@ -343,7 +284,9 @@ bool CoordinationController::parseGoal(
       return false;
     }
 
-    alg_ = std::make_shared<coordination_algorithms::RelJac>();
+    alg_ = std::make_shared<coordination_algorithms::RelJac>(
+        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
+        ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJACABSLIM)
   {
@@ -352,7 +295,9 @@ bool CoordinationController::parseGoal(
       return false;
     }
 
-    alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>();
+    alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>(
+        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
+        ori_thr_);
   }
   else
   {
@@ -364,9 +309,9 @@ bool CoordinationController::parseGoal(
       .sleep();  // let the controller get the updated simulation joint state
   ros::spinOnce();
 
-  dynamic_alpha_ = goal->dynamic_alpha;
+  alg_->setDynamicAlpha(goal->dynamic_alpha);
 
-  if (!dynamic_alpha_)
+  if (!goal->dynamic_alpha)
   {
     if (goal->alpha < 0 || goal->alpha > 1)
     {

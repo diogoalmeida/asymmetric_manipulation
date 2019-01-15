@@ -2,7 +2,16 @@
 
 namespace coordination_algorithms
 {
-ECTS::ECTS() : AlgorithmBase() {}
+ECTS::ECTS(const std::vector<double> &pos_upper_ct,
+           const std::vector<double> &pos_upper_thr,
+           const std::vector<double> &pos_lower_ct,
+           const std::vector<double> &pos_lower_thr,
+           const std::vector<double> &ori_ct,
+           const std::vector<double> &ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
+                    ori_ct, ori_thr)
+{
+}
 
 Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state,
                               const Vector3d &r1, const Vector3d &r2,

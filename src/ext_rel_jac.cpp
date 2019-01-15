@@ -2,7 +2,16 @@
 
 namespace coordination_algorithms
 {
-ExtRelJac::ExtRelJac() : AlgorithmBase() {}
+ExtRelJac::ExtRelJac(const std::vector<double> &pos_upper_ct,
+                     const std::vector<double> &pos_upper_thr,
+                     const std::vector<double> &pos_lower_ct,
+                     const std::vector<double> &pos_lower_thr,
+                     const std::vector<double> &ori_ct,
+                     const std::vector<double> &ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
+                    ori_ct, ori_thr)
+{
+}
 
 Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
                                    const Vector3d &r1, const Vector3d &r2,
@@ -38,6 +47,11 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
   J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
 
+  if (dynamic_alpha_)
+  {
+    alpha_ = computeAlpha(J1_kdl.data, J2_kdl.data);
+  }
+
   double scaling = 1 / ((1 - alpha_) * (1 - alpha_) + alpha_ * alpha_);
   L_asym.block<6, 6>(0, 0) = -(1 - alpha_) * scaling * Matrix6d::Identity();
   L_asym.block<6, 6>(0, 6) = alpha_ * scaling * Matrix6d::Identity();
@@ -60,5 +74,63 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
 
   return qdot_sym +
          (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_asym;
+}
+
+double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
+                               const Eigen::MatrixXd &J2) const
+{
+  coordination_algorithms::Vector6d pose_eig;
+  coordination_algorithms::Vector6d f_values;
+  Eigen::Vector3d position_eig;
+  Eigen::Quaterniond orientation_eig;
+  Eigen::Affine3d abs_eig;
+
+  tf::pointMsgToEigen(abs_pose_.position, position_eig);
+  tf::poseMsgToEigen(abs_pose_, abs_eig);
+  pose_eig.block<3, 1>(0, 0) = position_eig;
+  pose_eig[3] =
+      acos(abs_eig.matrix().block<3, 1>(0, 0).dot(Eigen::Vector3d::UnitX()));
+  pose_eig[4] =
+      acos(abs_eig.matrix().block<3, 1>(0, 1).dot(Eigen::Vector3d::UnitY()));
+  pose_eig[5] =
+      acos(abs_eig.matrix().block<3, 1>(0, 2).dot(Eigen::Vector3d::UnitZ()));
+
+  double d = 0;
+  for (unsigned int i = 0; i < 3; i++)
+  {
+    d = 0;
+    if (pose_eig[i] < pos_lower_thr_[i])
+    {
+      d = fabs(pos_lower_thr_[i] - pose_eig[i]) /
+          fabs(pos_lower_thr_[i] - pos_lower_ct_[i]);
+    }
+    else if (pose_eig[i] > pos_upper_thr_[i])
+    {
+      d = fabs(pos_upper_thr_[i] - pose_eig[i]) /
+          fabs(pos_upper_thr_[i] - pos_upper_ct_[i]);
+    }
+
+    f_values[i] = 1.5 * d * d - d * d * d;
+
+    d = 0;
+    if (pose_eig[i + 3] > ori_thr_[i])
+    {
+      d = fabs(ori_thr_[i] - pose_eig[i + 3]) / fabs(ori_thr_[i] - ori_ct_[i]);
+    }
+
+    f_values[i + 3] = 1.5 * d * d - d * d * d;
+  }
+
+  double mu1, mu2;
+
+  mu1 = sqrt((J1 * J1.transpose()).determinant());
+  mu2 = sqrt((J2 * J2.transpose()).determinant());
+
+  if (mu2 > mu1)
+  {
+    return 0.5 + f_values.maxCoeff();
+  }
+
+  return 0.5 - f_values.maxCoeff();
 }
 }  // namespace coordination_algorithms

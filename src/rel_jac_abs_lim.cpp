@@ -2,7 +2,14 @@
 
 namespace coordination_algorithms
 {
-RelJacAbsLim::RelJacAbsLim() : AlgorithmBase()
+RelJacAbsLim::RelJacAbsLim(const std::vector<double> &pos_upper_ct,
+                           const std::vector<double> &pos_upper_thr,
+                           const std::vector<double> &pos_lower_ct,
+                           const std::vector<double> &pos_lower_thr,
+                           const std::vector<double> &ori_ct,
+                           const std::vector<double> &ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
+                    ori_ct, ori_thr)
 {
   if (!init())
   {
@@ -12,161 +19,20 @@ RelJacAbsLim::RelJacAbsLim() : AlgorithmBase()
   }
 }
 
-bool RelJacAbsLim::init()
-{
-  if (!nh_.getParam("absolute_position_limits/upper_limits", pos_upper_ct_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/upper_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/upper_thresholds",
-                    pos_upper_thr_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/upper_thresholds parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/lower_limits", pos_lower_ct_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/lower_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/lower_thresholds",
-                    pos_lower_thr_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/lower_thresholds parameter");
-    return false;
-  }
-
-  if (pos_upper_ct_.size() != 3 || pos_upper_thr_.size() != 3 ||
-      pos_lower_ct_.size() != 3 || pos_lower_thr_.size() != 3)
-  {
-    ROS_ERROR("The absolute position limits must all be vectors of length 3!");
-    return false;
-  }
-
-  if (!nh_.getParam("left_obj_frame", obj_frame_[LEFT]))
-  {
-    ROS_ERROR("Missing left_obj_frame parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("right_obj_frame", obj_frame_[RIGHT]))
-  {
-    ROS_ERROR("Missing right_obj_frame parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("eef1/kdl_eef_frame", eef_frame_[LEFT]))
-  {
-    ROS_ERROR("Missing eef1/kdl_eef_frame parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("eef2/kdl_eef_frame", eef_frame_[RIGHT]))
-  {
-    ROS_ERROR("Missing eef2/kdl_eef_frame parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("max_tf_attempts", max_tf_attempts_))
-  {
-    ROS_ERROR("Missing max_tf_attempts parameter");
-    return false;
-  }
-
-  return true;
-}
-
-bool RelJacAbsLim::getSecundaryTask()
-{
-  geometry_msgs::PoseStamped object_pose;
-  object_pose.header.frame_id = obj_frame_.at(LEFT);
-  object_pose.header.stamp = ros::Time(0);
-  object_pose.pose.position.x = 0;
-  object_pose.pose.position.y = 0;
-  object_pose.pose.position.z = 0;
-  object_pose.pose.orientation.x = 0;
-  object_pose.pose.orientation.y = 0;
-  object_pose.pose.orientation.z = 0;
-  object_pose.pose.orientation.w = 1;
-
-  int attempts;
-  for (attempts = 0; attempts < max_tf_attempts_; attempts++)
-  {
-    try
-    {
-      listener_.transformPose(eef_frame_.at(LEFT), object_pose, object_pose);
-      break;
-    }
-    catch (tf::TransformException ex)
-    {
-      ROS_WARN("TF exception in coordination controller: %s", ex.what());
-      ros::Duration(0.1).sleep();
-    }
-  }
-
-  if (attempts >= max_tf_attempts_)
-  {
-    ROS_ERROR_STREAM("Failed to obtain pose of "
-                     << obj_frame_.at(LEFT) << " in " << eef_frame_.at(LEFT));
-    return false;
-  }
-
-  tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[LEFT]);
-
-  object_pose.header.frame_id = obj_frame_.at(RIGHT);
-  object_pose.header.stamp = ros::Time(0);
-  object_pose.pose.position.x = 0;
-  object_pose.pose.position.y = 0;
-  object_pose.pose.position.z = 0;
-  object_pose.pose.orientation.x = 0;
-  object_pose.pose.orientation.y = 0;
-  object_pose.pose.orientation.z = 0;
-  object_pose.pose.orientation.w = 1;
-
-  for (attempts = 0; attempts < max_tf_attempts_; attempts++)
-  {
-    try
-    {
-      listener_.transformPose(eef_frame_.at(RIGHT), object_pose, object_pose);
-      break;
-    }
-    catch (tf::TransformException ex)
-    {
-      ROS_WARN("TF exception in coordination controller: %s", ex.what());
-      ros::Duration(0.1).sleep();
-    }
-  }
-
-  if (attempts >= max_tf_attempts_)
-  {
-    ROS_ERROR_STREAM("Failed to obtain pose of "
-                     << obj_frame_.at(RIGHT) << " in " << eef_frame_.at(RIGHT));
-    return false;
-  }
-  tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[RIGHT]);
-
-  return true;
-}
+bool RelJacAbsLim::init() { return true; }
 
 Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
                                       const Vector3d &r1, const Vector3d &r2,
                                       const Vector6d &abs_twist,
                                       const Vector6d &rel_twist)
 {
-  KDL::Frame p1, p2, eef1, eef2, obj1, obj2;
+  KDL::Frame p1, p2, eef1, eef2;
   Eigen::Affine3d p1_eig, p2_eig, eef1_eig, eef2_eig;
 
   kdl_manager_->getGrippingPoint(eef1_, state, p1);
   kdl_manager_->getGrippingPoint(eef2_, state, p2);
   kdl_manager_->getEefPose(eef1_, state, eef1);
   kdl_manager_->getEefPose(eef2_, state, eef2);
-
-  obj1 = p1 * obj_in_eef_.at(LEFT);
-  obj2 = p2 * obj_in_eef_.at(RIGHT);
 
   tf::transformKDLToEigen(p1, p1_eig);
   tf::transformKDLToEigen(p2, p2_eig);
@@ -205,19 +71,7 @@ Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
       (J_sec * J_sec.transpose() + damping_ * Matrix6d::Identity()).inverse();
 
   // compute twist from secundary task
-  geometry_msgs::Pose abs_pose;
-  tf::pointKDLToMsg((obj1.p + obj2.p) / 2, abs_pose.position);
-  Eigen::Quaterniond ori1, ori2;
-  tf::quaternionKDLToEigen(obj1.M, ori1);
-  tf::quaternionKDLToEigen(obj2.M, ori2);
-  Eigen::Matrix3d ori1m = ori1.toRotationMatrix(),
-                  ori2m = ori2.toRotationMatrix();
-  Eigen::Matrix3d orirel = ori1m.transpose() * ori2m;
-  Eigen::AngleAxisd orirel_aa(orirel);
-  Eigen::AngleAxisd oriabs_aa(orirel_aa.angle() / 2, orirel_aa.axis());
-  Eigen::Quaterniond q(oriabs_aa);
-  tf::quaternionEigenToMsg(q, abs_pose.orientation);
-  Vector6d sec_twist = computeAbsTask(abs_pose);
+  Vector6d sec_twist = computeAbsTask(abs_pose_);
 
   Eigen::VectorXd qdot_sec = damped_sec_inverse * sec_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;

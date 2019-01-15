@@ -13,7 +13,11 @@ coordinate a dual-armed system.
 class RelJac : public AlgorithmBase
 {
  public:
-  RelJac();
+  RelJac(const std::vector<double> &pos_upper_ct,
+         const std::vector<double> &pos_upper_thr,
+         const std::vector<double> &pos_lower_ct,
+         const std::vector<double> &pos_lower_thr,
+         const std::vector<double> &ori_ct, const std::vector<double> &ori_thr);
   ~RelJac() {}
 
   Eigen::VectorXd control(const sensor_msgs::JointState &state,

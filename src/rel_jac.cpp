@@ -2,7 +2,14 @@
 
 namespace coordination_algorithms
 {
-RelJac::RelJac() : AlgorithmBase()
+RelJac::RelJac(const std::vector<double> &pos_upper_ct,
+               const std::vector<double> &pos_upper_thr,
+               const std::vector<double> &pos_lower_ct,
+               const std::vector<double> &pos_lower_thr,
+               const std::vector<double> &ori_ct,
+               const std::vector<double> &ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
+                    ori_ct, ori_thr)
 {
   if (!init())
   {

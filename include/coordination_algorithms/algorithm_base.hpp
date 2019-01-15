@@ -26,7 +26,12 @@ class AlgorithmBase
   /**
     Construct a coordination algorithm.
   **/
-  AlgorithmBase();
+  AlgorithmBase(const std::vector<double> &pos_upper_ct,
+                const std::vector<double> &pos_upper_thr,
+                const std::vector<double> &pos_lower_ct,
+                const std::vector<double> &pos_lower_thr,
+                const std::vector<double> &ori_ct,
+                const std::vector<double> &ori_thr);
   ~AlgorithmBase() {}
 
   /**
@@ -54,6 +59,21 @@ obtain joint velocities for the two manipulators.
   **/
   virtual bool getSecundaryTask() { return true; };
 
+  /**
+    Sets the dynamic alpha mode. If the algorithm supports it, dynamic alpha
+  sets the degree of cooperation of the arms according to some pre-defined
+  logic.
+
+    @param val If set to true, dynamic alpha will be activated. Set to false, it
+  will not.
+  **/
+  void setDynamicAlpha(bool val) { dynamic_alpha_ = val; }
+
+  /**
+    Provides the algorithm with information on the absolute pose of the
+  dual-armed system.
+  **/
+  void setAbsolutePose(const geometry_msgs::Pose &pose) { abs_pose_ = pose; }
   void setAlpha(double alpha) { alpha_ = alpha; }
   double getAlpha() const { return alpha_; }
 
@@ -63,7 +83,11 @@ obtain joint velocities for the two manipulators.
 
  protected:
   ros::NodeHandle nh_;
+  bool dynamic_alpha_;
   double alpha_, damping_;
+  geometry_msgs::Pose abs_pose_;
+  std::vector<double> pos_upper_ct_, pos_upper_thr_, pos_lower_ct_,
+      pos_lower_thr_, ori_thr_, ori_ct_;
 
   /**
     Initializes the parameters required to use an algorithm.

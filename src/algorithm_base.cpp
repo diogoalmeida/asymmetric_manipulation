@@ -2,7 +2,22 @@
 
 namespace coordination_algorithms
 {
-AlgorithmBase::AlgorithmBase() : nh_("~"), alpha_(0.5), damping_(0.0001)
+AlgorithmBase::AlgorithmBase(const std::vector<double> &pos_upper_ct,
+                             const std::vector<double> &pos_upper_thr,
+                             const std::vector<double> &pos_lower_ct,
+                             const std::vector<double> &pos_lower_thr,
+                             const std::vector<double> &ori_ct,
+                             const std::vector<double> &ori_thr)
+    : nh_("~"),
+      alpha_(0.5),
+      damping_(0.0001),
+      dynamic_alpha_(false),
+      pos_upper_ct_(pos_upper_ct),
+      pos_upper_thr_(pos_upper_thr),
+      pos_lower_ct_(pos_lower_ct),
+      pos_lower_thr_(pos_lower_thr),
+      ori_ct_(ori_ct),
+      ori_thr_(ori_thr)
 {
   if (!init())
   {
@@ -29,6 +44,9 @@ bool AlgorithmBase::init()
   {
     return false;
   }
+
+  Eigen::Affine3d init_abs_pose = Eigen::Affine3d::Identity();
+  tf::poseEigenToMsg(init_abs_pose, abs_pose_);
 
   return true;
 }

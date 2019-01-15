@@ -11,7 +11,12 @@ namespace coordination_algorithms
 class ExtRelJac : public AlgorithmBase
 {
  public:
-  ExtRelJac();
+  ExtRelJac(const std::vector<double> &pos_upper_ct,
+            const std::vector<double> &pos_upper_thr,
+            const std::vector<double> &pos_lower_ct,
+            const std::vector<double> &pos_lower_thr,
+            const std::vector<double> &ori_ct,
+            const std::vector<double> &ori_thr);
   ~ExtRelJac() {}
 
   Eigen::VectorXd control(const sensor_msgs::JointState &state,
@@ -19,6 +24,12 @@ class ExtRelJac : public AlgorithmBase
                           const Vector6d &abs_twist, const Vector6d &rel_twist);
 
  private:
+  /**
+    Compute the appropriate value of alpha to constrain the absolute motion,
+  such that the absolute workspace limits are respected.
+  **/
+  double computeAlpha(const Eigen::MatrixXd &J1,
+                      const Eigen::MatrixXd &J2) const;
 };
 }  // namespace coordination_algorithms
 
