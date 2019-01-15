@@ -58,12 +58,17 @@ add_library(rel_jac src/rel_jac.cpp src/algorithm_base.cpp)
 target_link_libraries(rel_jac ${catkin_LIBRARIES})
 add_dependencies(rel_jac ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 
+add_library(rel_jac_abs_lim src/rel_jac_abs_lim.cpp src/algorithm_base.cpp)
+target_link_libraries(rel_jac_abs_lim ${catkin_LIBRARIES})
+add_dependencies(rel_jac_abs_lim ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+
 set(
   CONTROLLERS
   coordination_controller
   ects
   ext_rel_jac
   rel_jac
+  rel_jac_abs_lim
 )
 
 add_executable(coordination_controller src/coordination_controller.cpp)

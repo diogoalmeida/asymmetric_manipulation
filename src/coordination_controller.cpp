@@ -166,8 +166,6 @@ double CoordinationController::computeAlpha(const geometry_msgs::Pose &abs_pose,
   pose_eig[5] =
       acos(abs_eig.matrix().block<3, 1>(0, 2).dot(Eigen::Vector3d::UnitZ()));
 
-  ROS_INFO_STREAM("Pose_eig: " << pose_eig);
-
   double d = 0;
   for (unsigned int i = 0; i < 3; i++)
   {
@@ -216,8 +214,8 @@ Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(
   alg_->kdl_manager_->getGrippingPoint(alg_->eef2_, state, p2);
 
   // Obtain the object frames in the base frame
-  obj1 = p1 * obj_in_eef_[LEFT];
-  obj2 = p2 * obj_in_eef_[RIGHT];
+  obj1 = p1 * obj_in_eef_.at(LEFT);
+  obj2 = p2 * obj_in_eef_.at(RIGHT);
 
   Eigen::Affine3d obj1_eig, obj2_eig, relative_frame;
   tf::transformKDLToEigen(obj1, obj1_eig);
@@ -279,7 +277,7 @@ geometry_msgs::Pose CoordinationController::computeAbsolutePose(
   Eigen::Matrix3d rel = r1.transpose() * r2;
   Eigen::AngleAxisd rel_aa(rel);
   Eigen::AngleAxisd abs_aa(rel_aa.angle() / 2, rel_aa.axis());
-  Eigen::Matrix3d r_abs = r1;  // * abs_aa.toRotationMatrix();
+  Eigen::Matrix3d r_abs = r1 * abs_aa.toRotationMatrix();
   Eigen::Quaterniond q(r_abs);
 
   geometry_msgs::Pose p_avg;
@@ -346,6 +344,15 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::RelJac>();
+  }
+  else if (goal->control_mode.controller == goal->control_mode.RELJACABSLIM)
+  {
+    if (!reset_client_.call(srv))
+    {
+      return false;
+    }
+
+    alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>();
   }
   else
   {
@@ -417,7 +424,7 @@ bool CoordinationController::parseGoal(
 bool CoordinationController::initializeObjectFrames()
 {
   geometry_msgs::PoseStamped object_pose;
-  object_pose.header.frame_id = obj_frame_[LEFT];
+  object_pose.header.frame_id = obj_frame_.at(LEFT);
   object_pose.header.stamp = ros::Time(0);
   object_pose.pose.position.x = 0;
   object_pose.pose.position.y = 0;
@@ -432,7 +439,7 @@ bool CoordinationController::initializeObjectFrames()
   {
     try
     {
-      listener_.transformPose(eef_frame_[LEFT], object_pose, object_pose);
+      listener_.transformPose(eef_frame_.at(LEFT), object_pose, object_pose);
       break;
     }
     catch (tf::TransformException ex)
@@ -444,13 +451,13 @@ bool CoordinationController::initializeObjectFrames()
 
   if (attempts >= max_tf_attempts_)
   {
-    ROS_ERROR_STREAM("Failed to obtain pose of " << obj_frame_[LEFT] << " in "
-                                                 << eef_frame_[LEFT]);
+    ROS_ERROR_STREAM("Failed to obtain pose of "
+                     << obj_frame_.at(LEFT) << " in " << eef_frame_.at(LEFT));
     return false;
   }
   tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[LEFT]);
 
-  object_pose.header.frame_id = obj_frame_[RIGHT];
+  object_pose.header.frame_id = obj_frame_.at(RIGHT);
   object_pose.header.stamp = ros::Time(0);
   object_pose.pose.position.x = 0;
   object_pose.pose.position.y = 0;
@@ -464,7 +471,7 @@ bool CoordinationController::initializeObjectFrames()
   {
     try
     {
-      listener_.transformPose(eef_frame_[RIGHT], object_pose, object_pose);
+      listener_.transformPose(eef_frame_.at(RIGHT), object_pose, object_pose);
       break;
     }
     catch (tf::TransformException ex)
@@ -476,10 +483,11 @@ bool CoordinationController::initializeObjectFrames()
 
   if (attempts >= max_tf_attempts_)
   {
-    ROS_ERROR_STREAM("Failed to obtain pose of " << obj_frame_[RIGHT] << " in "
-                                                 << eef_frame_[RIGHT]);
+    ROS_ERROR_STREAM("Failed to obtain pose of "
+                     << obj_frame_.at(RIGHT) << " in " << eef_frame_.at(RIGHT));
     return false;
   }
+
   tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[RIGHT]);
 
   return true;
@@ -491,7 +499,7 @@ bool CoordinationController::init()
 {
   if (!nh_.getParam("max_tf_attempts", max_tf_attempts_))
   {
-    ROS_ERROR("Missing max_tf_attemps parameter.");
+    ROS_ERROR("Missing max_tf_attempts parameter.");
     return false;
   }
 
