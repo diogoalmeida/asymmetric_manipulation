@@ -88,11 +88,17 @@ double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
   for (unsigned int i = 0; i < 3; i++)
   {
     d = 0;
-    if (position_eig[i] - pos_lower_ct_[i] < pos_thr_)
+
+    if (position_eig[i] - pos_lower_ct_[i] < 0 ||
+        pos_upper_ct_[i] - position_eig[i] < 0)
+    {
+      d = 1.0;
+    }
+    else if (position_eig[i] - pos_lower_ct_[i] < pos_thr_)
     {
       d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_lower_ct_[i]);
     }
-    else if (pos_upper_ct_[i] - position_eig[i] > pos_thr_)
+    else if (pos_upper_ct_[i] - position_eig[i] < pos_thr_)
     {
       d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_upper_ct_[i]);
     }
@@ -100,7 +106,11 @@ double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
     f_values[i] = 1.5 * d * d - d * d * d;
   }
 
-  if (fabs(angle) > ori_thr_)
+  if (fabs(angle) > ori_ct_)
+  {
+    d = 1.0;
+  }
+  else if (fabs(angle) > ori_thr_)
   {
     d = fabs(ori_thr_ - angle) / fabs(ori_thr_ - ori_ct_);
   }
