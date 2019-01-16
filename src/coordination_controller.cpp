@@ -197,7 +197,7 @@ void CoordinationController::computeAlignVirtualSticks(
 }
 
 geometry_msgs::Pose CoordinationController::computeAbsolutePose(
-    const sensor_msgs::JointState &state) const
+    const sensor_msgs::JointState &state)
 {
   KDL::Frame p1, p2;
   Eigen::Quaterniond ori1, ori2;
@@ -213,13 +213,18 @@ geometry_msgs::Pose CoordinationController::computeAbsolutePose(
   Eigen::Matrix3d r2 = ori2.toRotationMatrix();
   Eigen::Matrix3d rel = r1.transpose() * r2;
   Eigen::AngleAxisd rel_aa(rel);
-  Eigen::AngleAxisd abs_aa(rel_aa.angle() / 2, rel_aa.axis());
-  Eigen::Matrix3d r_abs = r1 * abs_aa.toRotationMatrix();
-  Eigen::Quaterniond q(r_abs);
+  Eigen::AngleAxisd half_aa(rel_aa.angle() / 2, rel_aa.axis());
+  Eigen::Matrix3d r_abs = r1 * half_aa.toRotationMatrix();
+  Eigen::Quaterniond q(r_abs), q1(r1), q2(r2);
+  Eigen::AngleAxisd abs_aa(q), aa1(q1), aa2(q2);
 
   geometry_msgs::Pose p_avg;
   tf::pointKDLToMsg((p1.p + p2.p) / 2, p_avg.position);
   tf::quaternionEigenToMsg(q, p_avg.orientation);
+  feedback_.absolute_position = p_avg.position;
+  feedback_.absolute_angle = abs_aa.angle();
+  feedback_.obj1_angle = aa1.angle();
+  feedback_.obj2_angle = aa2.angle();
   return p_avg;
 }
 

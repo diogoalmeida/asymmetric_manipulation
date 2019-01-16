@@ -98,8 +98,7 @@ class CoordinationController
 
     @param state The current dual-arm system joint state.
   **/
-  geometry_msgs::Pose computeAbsolutePose(
-      const sensor_msgs::JointState &state) const;
+  geometry_msgs::Pose computeAbsolutePose(const sensor_msgs::JointState &state);
 
   /**
     Compute alpha such that the current absolute pose (in the base frame)
