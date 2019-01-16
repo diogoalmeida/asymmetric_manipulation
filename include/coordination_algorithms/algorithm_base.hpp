@@ -26,12 +26,8 @@ class AlgorithmBase
   /**
     Construct a coordination algorithm.
   **/
-  AlgorithmBase(const std::vector<double> &pos_upper_ct,
-                const std::vector<double> &pos_upper_thr,
-                const std::vector<double> &pos_lower_ct,
-                const std::vector<double> &pos_lower_thr,
-                const std::vector<double> &ori_ct,
-                const std::vector<double> &ori_thr);
+  AlgorithmBase(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
+                double pos_thr, double ori_ct, double ori_thr);
   ~AlgorithmBase() {}
 
   /**
@@ -86,8 +82,8 @@ obtain joint velocities for the two manipulators.
   bool dynamic_alpha_;
   double alpha_, damping_;
   geometry_msgs::Pose abs_pose_;
-  std::vector<double> pos_upper_ct_, pos_upper_thr_, pos_lower_ct_,
-      pos_lower_thr_, ori_thr_, ori_ct_;
+  Vector3d pos_upper_ct_, pos_lower_ct_;
+  double pos_thr_, ori_thr_, ori_ct_;
 
   /**
     Initializes the parameters required to use an algorithm.

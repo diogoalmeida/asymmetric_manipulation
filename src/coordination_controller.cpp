@@ -243,6 +243,21 @@ bool CoordinationController::parseGoal(
 {
   std_srvs::Empty srv;
 
+  tf::pointMsgToEigen(goal->limits.position_max_limits, pos_upper_ct_);
+  tf::pointMsgToEigen(goal->limits.position_min_limits, pos_lower_ct_);
+  pos_thr_ = goal->limits.threshold_distance;
+  ori_ct_ = goal->limits.orientation_limit_angle;
+  ori_thr_ = goal->limits.orientation_threshold;
+
+  // publish workspace limits. TODO: parameterize?
+  ori_ws_pub_->deleteAllMarkers();
+  pos_ws_pub_->deleteAllMarkers();
+  pos_ws_pub_->publishCuboid(pos_lower_ct_, pos_upper_ct_,
+                             rviz_visual_tools::PINK);
+  pos_ws_pub_->trigger();
+
+  // ori_ws_pub_->trigger();
+
   if (goal->control_mode.controller == goal->control_mode.RESET)
   {
     if (reset_client_.call(srv))
@@ -263,8 +278,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::ECTS>(
-        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
-        ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.EXTRELJAC)
   {
@@ -274,8 +288,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::ExtRelJac>(
-        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
-        ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJAC)
   {
@@ -285,8 +298,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::RelJac>(
-        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
-        ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJACABSLIM)
   {
@@ -296,8 +308,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>(
-        pos_upper_ct_, pos_upper_thr_, pos_lower_ct_, pos_lower_thr_, ori_ct_,
-        ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
   }
   else
   {
@@ -478,44 +489,6 @@ bool CoordinationController::init()
     return false;
   }
 
-  if (!nh_.getParam("absolute_position_limits/upper_limits", pos_upper_ct_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/upper_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/upper_thresholds",
-                    pos_upper_thr_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/upper_thresholds parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/lower_limits", pos_lower_ct_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/lower_limits parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_position_limits/lower_thresholds",
-                    pos_lower_thr_))
-  {
-    ROS_ERROR("Missing absolute_position_limits/lower_thresholds parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_orientation_limits/limits", ori_ct_))
-  {
-    ROS_ERROR("Missing absolute_orientation_limits/limits");
-    return false;
-  }
-
-  if (!nh_.getParam("absolute_orientation_limits/thresholds", ori_thr_))
-  {
-    ROS_ERROR("Missing absolute_orientation_limits/thresholds");
-    return false;
-  }
-
   if (!nh_.getParam("kinematic_chain_base_link", base_))
   {
     ROS_ERROR("Missing kinematic_chain_base_link parameter");
@@ -526,20 +499,6 @@ bool CoordinationController::init()
   if (!nh_.getParam("workspace_limits_marker_alpha", limit_alpha))
   {
     ROS_ERROR("Missing workspace_limits_marker_alpha parameter");
-    return false;
-  }
-
-  if (pos_upper_ct_.size() != 3 || pos_upper_thr_.size() != 3 ||
-      pos_lower_ct_.size() != 3 || pos_lower_thr_.size() != 3)
-  {
-    ROS_ERROR("The absolute position limits must all be vectors of length 3!");
-    return false;
-  }
-
-  if (ori_ct_.size() != 3 || ori_thr_.size() != 3)
-  {
-    ROS_ERROR(
-        "The absolute orientation limits must all be vectors of length 3");
     return false;
   }
 
@@ -568,37 +527,8 @@ bool CoordinationController::init()
   ori_ws_pub_->enableBatchPublishing();
   pos_ws_pub_->enableBatchPublishing();
 
-  // publish workspace limits. TODO: parameterize?
-  Eigen::Isometry3d min_lims = Eigen::Isometry3d::Identity();
-  Eigen::Isometry3d max_lims = Eigen::Isometry3d::Identity();
-
-  max_lims.translation().x() = pos_upper_ct_[0];
-  max_lims.translation().y() = pos_upper_ct_[1];
-  max_lims.translation().z() = pos_upper_ct_[2];
-
-  min_lims.translation().x() = pos_lower_ct_[0];
-  min_lims.translation().y() = pos_lower_ct_[1];
-  min_lims.translation().z() = pos_lower_ct_[2];
-
   pos_ws_pub_->setAlpha(limit_alpha);
   ori_ws_pub_->setAlpha(limit_alpha);
-  pos_ws_pub_->publishCuboid(min_lims.translation(), max_lims.translation(),
-                             rviz_visual_tools::RAND);
-  pos_ws_pub_->trigger();
-
-  geometry_msgs::Pose lim_x, lim_y, lim_z;
-
-  lim_x.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-  lim_y.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, M_PI / 2);
-  lim_z.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, -M_PI / 2, 0);
-
-  ori_ws_pub_->publishCone(lim_x, M_PI - ori_ct_[0], rviz_visual_tools::RED,
-                           0.1);
-  ori_ws_pub_->publishCone(lim_y, M_PI - ori_ct_[1], rviz_visual_tools::GREEN,
-                           0.1);
-  ori_ws_pub_->publishCone(lim_z, M_PI - ori_ct_[2], rviz_visual_tools::BLUE,
-                           0.1);
-  ori_ws_pub_->trigger();
 
   newGoal_ = true;
   return true;

@@ -22,6 +22,7 @@ add_message_files(
   FILES
   Controllers.msg
   Inputs.msg
+  WorkspaceLimits.msg
 )
 
 add_action_files(

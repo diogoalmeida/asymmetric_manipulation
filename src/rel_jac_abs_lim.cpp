@@ -2,14 +2,10 @@
 
 namespace coordination_algorithms
 {
-RelJacAbsLim::RelJacAbsLim(const std::vector<double> &pos_upper_ct,
-                           const std::vector<double> &pos_upper_thr,
-                           const std::vector<double> &pos_lower_ct,
-                           const std::vector<double> &pos_lower_thr,
-                           const std::vector<double> &ori_ct,
-                           const std::vector<double> &ori_thr)
-    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
-                    ori_ct, ori_thr)
+RelJacAbsLim::RelJacAbsLim(const Vector3d &pos_upper_ct,
+                           const Vector3d &pos_lower_ct, double pos_thr,
+                           double ori_ct, double ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr)
 {
   if (!init())
   {
@@ -89,16 +85,16 @@ Vector6d RelJacAbsLim::computeAbsTask(const geometry_msgs::Pose &abs_pose) const
 
   for (unsigned int i = 0; i < 3; i++)
   {
-    if (pos[i] > pos_upper_thr_[i])
+    if (pos_upper_ct_[i] - pos[i] > pos_thr_)
     {
       ret[i] += 0.01 / (pos[i] - pos_upper_ct_[i]) +
-                0.01 / (pos_upper_thr_[i] - pos_upper_ct_[i]);
+                0.01 / (pos_thr_ - pos_upper_ct_[i]);
     }
 
-    if (pos[i] < pos_lower_thr_[i])
+    if (pos[i] - pos_lower_ct_[i] < pos_thr_)
     {
       ret[i] += 0.01 / (pos[i] - pos_lower_ct_[i]) +
-                0.01 / (pos_lower_thr_[i] - pos_upper_ct_[i]);
+                0.01 / (pos_thr_ - pos_upper_ct_[i]);
     }
   }
 

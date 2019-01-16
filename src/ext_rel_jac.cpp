@@ -2,14 +2,9 @@
 
 namespace coordination_algorithms
 {
-ExtRelJac::ExtRelJac(const std::vector<double> &pos_upper_ct,
-                     const std::vector<double> &pos_upper_thr,
-                     const std::vector<double> &pos_lower_ct,
-                     const std::vector<double> &pos_lower_thr,
-                     const std::vector<double> &ori_ct,
-                     const std::vector<double> &ori_thr)
-    : AlgorithmBase(pos_upper_ct, pos_upper_thr, pos_lower_ct, pos_lower_thr,
-                    ori_ct, ori_thr)
+ExtRelJac::ExtRelJac(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
+                     double pos_thr, double ori_ct, double ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr)
 {
 }
 
@@ -79,47 +74,38 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
 double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
                                const Eigen::MatrixXd &J2) const
 {
-  coordination_algorithms::Vector6d pose_eig;
-  coordination_algorithms::Vector6d f_values;
+  Eigen::Matrix<double, 4, 1> f_values;
   Eigen::Vector3d position_eig;
   Eigen::Quaterniond orientation_eig;
-  Eigen::Affine3d abs_eig;
 
   tf::pointMsgToEigen(abs_pose_.position, position_eig);
-  tf::poseMsgToEigen(abs_pose_, abs_eig);
-  pose_eig.block<3, 1>(0, 0) = position_eig;
-  pose_eig[3] =
-      acos(abs_eig.matrix().block<3, 1>(0, 0).dot(Eigen::Vector3d::UnitX()));
-  pose_eig[4] =
-      acos(abs_eig.matrix().block<3, 1>(0, 1).dot(Eigen::Vector3d::UnitY()));
-  pose_eig[5] =
-      acos(abs_eig.matrix().block<3, 1>(0, 2).dot(Eigen::Vector3d::UnitZ()));
+  tf::quaternionMsgToEigen(abs_pose_.orientation, orientation_eig);
+
+  Eigen::AngleAxisd orientation_aa(orientation_eig);
+  double angle = orientation_aa.angle();
 
   double d = 0;
   for (unsigned int i = 0; i < 3; i++)
   {
     d = 0;
-    if (pose_eig[i] < pos_lower_thr_[i])
+    if (position_eig[i] - pos_lower_ct_[i] < pos_thr_)
     {
-      d = fabs(pos_lower_thr_[i] - pose_eig[i]) /
-          fabs(pos_lower_thr_[i] - pos_lower_ct_[i]);
+      d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_lower_ct_[i]);
     }
-    else if (pose_eig[i] > pos_upper_thr_[i])
+    else if (pos_upper_ct_[i] - position_eig[i] > pos_thr_)
     {
-      d = fabs(pos_upper_thr_[i] - pose_eig[i]) /
-          fabs(pos_upper_thr_[i] - pos_upper_ct_[i]);
+      d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_upper_ct_[i]);
     }
 
     f_values[i] = 1.5 * d * d - d * d * d;
-
-    d = 0;
-    if (pose_eig[i + 3] > ori_thr_[i])
-    {
-      d = fabs(ori_thr_[i] - pose_eig[i + 3]) / fabs(ori_thr_[i] - ori_ct_[i]);
-    }
-
-    f_values[i + 3] = 1.5 * d * d - d * d * d;
   }
+
+  if (fabs(angle) > ori_thr_)
+  {
+    d = fabs(ori_thr_ - angle) / fabs(ori_thr_ - ori_ct_);
+  }
+
+  f_values[3] = 1.5 * d * d - d * d * d;
 
   double mu1, mu2;
 
