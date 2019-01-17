@@ -5,7 +5,8 @@ namespace coordination_algorithms
 RelJacAbsLim::RelJacAbsLim(const Vector3d &pos_upper_ct,
                            const Vector3d &pos_lower_ct, double pos_thr,
                            double ori_ct, double ori_thr)
-    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr)
+    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr),
+      symmetric_(false)
 {
   if (!init())
   {
@@ -15,7 +16,25 @@ RelJacAbsLim::RelJacAbsLim(const Vector3d &pos_upper_ct,
   }
 }
 
-bool RelJacAbsLim::init() { return true; }
+bool RelJacAbsLim::init()
+{
+  if (!nh_.getParam("secundary_absolute_motion_task/position_gain",
+                    sec_pos_gain_))
+  {
+    ROS_ERROR("Missing secundary_absolute_motion_task/position_gain parameter");
+    return false;
+  }
+
+  if (!nh_.getParam("secundary_absolute_motion_task/orientation_gain",
+                    sec_ori_gain_))
+  {
+    ROS_ERROR(
+        "Missing secundary_absolute_motion_task/orientation_gain parameter");
+    return false;
+  }
+
+  return true;
+}
 
 Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
                                       const Vector3d &r1, const Vector3d &r2,
@@ -62,14 +81,30 @@ Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
   MatrixInvRelativeJacd damped_sim_inverse =
       J_sim.transpose() *
       (J_sim * J_sim.transpose() + damping_ * Matrix6d::Identity()).inverse();
-  MatrixInvRelativeJacd damped_sec_inverse =
-      J_sec.transpose() *
-      (J_sec * J_sec.transpose() + damping_ * Matrix6d::Identity()).inverse();
 
   // compute twist from secundary task
   Vector6d sec_twist = computeAbsTask(abs_pose_);
+  Eigen::MatrixXd full_sec_twist;
 
-  Eigen::VectorXd qdot_sec = damped_sec_inverse * sec_twist;
+  Eigen::MatrixXd damped_sec_inverse;
+  if (symmetric_)
+  {
+    full_sec_twist = sec_twist;
+    damped_sec_inverse =
+        J_sec.transpose() *
+        (J_sec * J_sec.transpose() + damping_ * Matrix6d::Identity()).inverse();
+  }
+  else
+  {
+    full_sec_twist = Eigen::Matrix<double, 12, 1>::Zero();
+    full_sec_twist.block<6, 1>(0, 0) = sec_twist;
+    full_sec_twist.block<6, 1>(6, 0) = sec_twist;
+    damped_sec_inverse =
+        J.transpose() *
+        (J * J.transpose() + damping_ * Matrix12d::Identity()).inverse();
+  }
+
+  Eigen::VectorXd qdot_sec = damped_sec_inverse * full_sec_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
 
   return qdot_sym +
@@ -80,22 +115,34 @@ Vector6d RelJacAbsLim::computeAbsTask(const geometry_msgs::Pose &abs_pose) const
 {
   Vector6d ret = Vector6d::Zero();
   Vector3d pos;
+  Eigen::Quaterniond absq;
 
   tf::pointMsgToEigen(abs_pose.position, pos);
+  tf::quaternionMsgToEigen(abs_pose.orientation, absq);
+
+  Eigen::AngleAxisd absaa(absq);
 
   for (unsigned int i = 0; i < 3; i++)
   {
-    if (pos_upper_ct_[i] - pos[i] > pos_thr_)
+    if (pos_upper_ct_[i] - pos[i] < 0)
     {
-      ret[i] += 0.01 / (pos[i] - pos_upper_ct_[i]) +
-                0.01 / (pos_thr_ - pos_upper_ct_[i]);
+      ret[i] = sec_pos_gain_ * (pos_upper_ct_[i] - pos[i]);
     }
 
-    if (pos[i] - pos_lower_ct_[i] < pos_thr_)
+    if (pos[i] - pos_lower_ct_[i] < 0)
     {
-      ret[i] += 0.01 / (pos[i] - pos_lower_ct_[i]) +
-                0.01 / (pos_thr_ - pos_upper_ct_[i]);
+      ret[i] = sec_pos_gain_ * (pos_lower_ct_[i] - pos[i]);
     }
+  }
+
+  if (fabs(absaa.angle()) >= ori_ct_)
+  {
+    Eigen::AngleAxisd target_aa(ori_ct_, absaa.axis());
+    Eigen::Matrix3d rel_error =
+        target_aa.toRotationMatrix().transpose() * absaa.toRotationMatrix();
+    Eigen::Quaterniond relq(rel_error);
+    ret.block<3, 1>(3, 0) =
+        sec_ori_gain_ * target_aa.toRotationMatrix() * relq.inverse().vec();
   }
 
   return ret;

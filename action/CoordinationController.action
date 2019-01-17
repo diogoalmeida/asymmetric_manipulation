@@ -4,6 +4,7 @@ coordination_experiments/WorkspaceLimits limits
 float64 max_time
 float64 alpha
 bool dynamic_alpha
+bool symmetric_secundary_task
 ---
 ---
 float64 curr_alpha

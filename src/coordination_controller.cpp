@@ -314,6 +314,12 @@ bool CoordinationController::parseGoal(
 
     alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>(
         pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
+
+    if (goal->symmetric_secundary_task)
+    {
+      std::static_pointer_cast<coordination_algorithms::RelJacAbsLim>(alg_)
+          ->setSymmetric(true);
+    }
   }
   else
   {

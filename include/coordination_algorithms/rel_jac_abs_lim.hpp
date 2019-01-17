@@ -20,6 +20,12 @@ class RelJacAbsLim : public AlgorithmBase
                           const Vector3d &r1, const Vector3d &r2,
                           const Vector6d &abs_twist, const Vector6d &rel_twist);
 
+  /**
+    Defines whether the absolute motion task will be defined through an absolute
+    Jacobian or by solving independently for each end-effector.
+  **/
+  void setSymmetric(bool val) { symmetric_ = val; }
+
  private:
   bool init();
 
@@ -27,8 +33,12 @@ class RelJacAbsLim : public AlgorithmBase
     Compute the absolute motion task command.
 
     @param abs_pose The absolute pose of the system.
+    @param abs_twist The absolute twist at the absolute frame.
   **/
   Vector6d computeAbsTask(const geometry_msgs::Pose &abs_pose) const;
+
+  double sec_pos_gain_, sec_ori_gain_;
+  bool symmetric_;
 };
 }  // namespace coordination_algorithms
 

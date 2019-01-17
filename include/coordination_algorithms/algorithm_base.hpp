@@ -82,6 +82,7 @@ obtain joint velocities for the two manipulators.
   bool dynamic_alpha_;
   double alpha_, damping_;
   geometry_msgs::Pose abs_pose_;
+  Vector6d abs_twist_;
   Vector3d pos_upper_ct_, pos_lower_ct_;
   double pos_thr_, ori_thr_, ori_ct_;
 
