@@ -27,7 +27,7 @@ add_message_files(
 
 add_action_files(
   DIRECTORY action
-  FILES CoordinationController.action
+  FILES CoordinationController.action RunSimulation.action
 )
 
 generate_messages(
