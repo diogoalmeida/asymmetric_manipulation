@@ -83,7 +83,7 @@ double AlgorithmBase::computeDerivative(
     const sensor_msgs::JointState &state) const
 {
   unsigned int n1, n2;
-  double h = std::sqrt(std::numeric_limits<double>::min());
+  double h = std::cbrt(std::numeric_limits<double>::min());
 
   kdl_manager_->getNumJoints(eef1_, n1);
   kdl_manager_->getNumJoints(eef2_, n2);
