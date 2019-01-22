@@ -86,6 +86,7 @@ obtain joint velocities for the two manipulators.
   Vector6d abs_twist_;
   Vector3d pos_upper_ct_, pos_lower_ct_;
   double pos_thr_, ori_thr_, ori_ct_;
+  double sec_pos_gain_, sec_ori_gain_;
 
   /**
     Initializes the parameters required to use an algorithm.
@@ -111,6 +112,15 @@ obtain joint velocities for the two manipulators.
     @param r2 Virtual stick connecting eef2 to its corresponding task frame.
   **/
   Matrix12d computeW(const Vector3d &r1, const Vector3d &r2) const;
+
+  /**
+    Compute the absolute motion task command, to be used as a potential
+  secundary task.
+
+    @param abs_pose The absolute pose of the system.
+    @param abs_twist The absolute twist at the absolute frame.
+  **/
+  Vector6d computeAbsTask(const geometry_msgs::Pose &abs_pose) const;
 
   /**
     Compute the derivate of functions with domain in the joint space and return

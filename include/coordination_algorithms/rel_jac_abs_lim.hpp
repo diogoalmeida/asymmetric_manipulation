@@ -29,15 +29,6 @@ class RelJacAbsLim : public AlgorithmBase
  private:
   bool init();
 
-  /**
-    Compute the absolute motion task command.
-
-    @param abs_pose The absolute pose of the system.
-    @param abs_twist The absolute twist at the absolute frame.
-  **/
-  Vector6d computeAbsTask(const geometry_msgs::Pose &abs_pose) const;
-
-  double sec_pos_gain_, sec_ori_gain_;
   bool symmetric_;
 };
 }  // namespace coordination_algorithms

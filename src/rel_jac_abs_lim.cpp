@@ -16,25 +16,7 @@ RelJacAbsLim::RelJacAbsLim(const Vector3d &pos_upper_ct,
   }
 }
 
-bool RelJacAbsLim::init()
-{
-  if (!nh_.getParam("secundary_absolute_motion_task/position_gain",
-                    sec_pos_gain_))
-  {
-    ROS_ERROR("Missing secundary_absolute_motion_task/position_gain parameter");
-    return false;
-  }
-
-  if (!nh_.getParam("secundary_absolute_motion_task/orientation_gain",
-                    sec_ori_gain_))
-  {
-    ROS_ERROR(
-        "Missing secundary_absolute_motion_task/orientation_gain parameter");
-    return false;
-  }
-
-  return true;
-}
+bool RelJacAbsLim::init() { return true; }
 
 Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
                                       const Vector3d &r1, const Vector3d &r2,
@@ -109,42 +91,5 @@ Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
 
   return qdot_sym +
          (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_sec;
-}
-
-Vector6d RelJacAbsLim::computeAbsTask(const geometry_msgs::Pose &abs_pose) const
-{
-  Vector6d ret = Vector6d::Zero();
-  Vector3d pos;
-  Eigen::Quaterniond absq;
-
-  tf::pointMsgToEigen(abs_pose.position, pos);
-  tf::quaternionMsgToEigen(abs_pose.orientation, absq);
-
-  Eigen::AngleAxisd absaa(absq);
-
-  for (unsigned int i = 0; i < 3; i++)
-  {
-    if (pos_upper_ct_[i] - pos[i] < 0)
-    {
-      ret[i] = sec_pos_gain_ * (pos_upper_ct_[i] - pos[i]);
-    }
-
-    if (pos[i] - pos_lower_ct_[i] < 0)
-    {
-      ret[i] = sec_pos_gain_ * (pos_lower_ct_[i] - pos[i]);
-    }
-  }
-
-  if (fabs(absaa.angle()) >= ori_ct_)
-  {
-    Eigen::AngleAxisd target_aa(ori_ct_, absaa.axis());
-    Eigen::Matrix3d rel_error =
-        target_aa.toRotationMatrix().transpose() * absaa.toRotationMatrix();
-    Eigen::Quaterniond relq(rel_error);
-    ret.block<3, 1>(3, 0) =
-        sec_ori_gain_ * target_aa.toRotationMatrix() * relq.inverse().vec();
-  }
-
-  return ret;
 }
 }  // namespace coordination_algorithms
