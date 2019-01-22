@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <generic_control_toolbox/kdl_manager.hpp>
+#include <limits>
 
 namespace coordination_algorithms
 {
@@ -110,6 +111,16 @@ obtain joint velocities for the two manipulators.
     @param r2 Virtual stick connecting eef2 to its corresponding task frame.
   **/
   Matrix12d computeW(const Vector3d &r1, const Vector3d &r2) const;
+
+  /**
+    Compute the derivate of functions with domain in the joint space and return
+  a real value.
+
+    @param fun The function to compute the derivative for.
+    @param state The joint state around which to estimate the derivative.
+  **/
+  double computeDerivative(std::function<double(sensor_msgs::JointState)> fun,
+                           const sensor_msgs::JointState &state) const;
 };
 }  // namespace coordination_algorithms
 

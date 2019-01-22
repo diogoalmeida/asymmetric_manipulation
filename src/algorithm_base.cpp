@@ -77,4 +77,38 @@ Matrix12d AlgorithmBase::computeW(const Vector3d &r1, const Vector3d &r2) const
 
   return W;
 }
+
+double AlgorithmBase::computeDerivative(
+    std::function<double(sensor_msgs::JointState)> fun,
+    const sensor_msgs::JointState &state) const
+{
+  unsigned int n1, n2;
+  double h = std::sqrt(std::numeric_limits<double>::min());
+
+  kdl_manager_->getNumJoints(eef1_, n1);
+  kdl_manager_->getNumJoints(eef2_, n2);
+  KDL::JntArray q1, q2;
+
+  kdl_manager_->getJointPositions(eef1_, state, q1);
+  kdl_manager_->getJointPositions(eef2_, state, q2);
+
+  Eigen::VectorXd q1u, q1l, q2u, q2l;
+
+  q1u = q1.data + h * Eigen::VectorXd::Ones(n1, 1);
+  q1l = q1.data - h * Eigen::VectorXd::Ones(n1, 1);
+  q2u = q2.data + h * Eigen::VectorXd::Ones(n2, 1);
+  q2l = q2.data - h * Eigen::VectorXd::Ones(n2, 1);
+
+  sensor_msgs::JointState state_up = state, state_down = state;
+  kdl_manager_->getJointState(eef1_, q1u, Eigen::VectorXd::Zero(n1, 1),
+                              state_up);
+  kdl_manager_->getJointState(eef2_, q2u, Eigen::VectorXd::Zero(n2, 1),
+                              state_up);
+  kdl_manager_->getJointState(eef1_, q1l, Eigen::VectorXd::Zero(n1, 1),
+                              state_down);
+  kdl_manager_->getJointState(eef2_, q2l, Eigen::VectorXd::Zero(n2, 1),
+                              state_down);
+
+  return (fun(state_up) - fun(state_down)) / (2 * h);
+}
 }  // namespace coordination_algorithms
