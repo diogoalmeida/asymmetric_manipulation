@@ -78,7 +78,7 @@ Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
   }
   else
   {
-    full_sec_twist = Eigen::Matrix<double, 12, 1>::Zero();
+    full_sec_twist = Vector12d::Zero();
     full_sec_twist.block<6, 1>(0, 0) = sec_twist;
     full_sec_twist.block<6, 1>(6, 0) = sec_twist;
     damped_sec_inverse =

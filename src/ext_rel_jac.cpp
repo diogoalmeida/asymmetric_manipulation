@@ -33,14 +33,18 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   MatrixRelLinkingd L_asym = MatrixRelLinkingd::Zero(),
                     L_sim = MatrixRelLinkingd::Zero();
   KDL::Jacobian J1_kdl, J2_kdl;
-  Eigen::MatrixXd J_sim, J_asym, J;
+  Eigen::MatrixXd J_sim, J_asym, J_comb, J, J_abs;
 
   kdl_manager_->getJacobian(eef1_, state, J1_kdl);
   kdl_manager_->getJacobian(eef2_, state, J2_kdl);
 
   J = Eigen::MatrixXd::Zero(12, J1_kdl.columns() + J2_kdl.columns());
+  J_abs = J;
   J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
   J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
+  J_abs.block(0, 0, 6, J1_kdl.columns()) = W.block<6, 6>(0, 0) * J1_kdl.data;
+  J_abs.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) =
+      W.block<6, 6>(6, 6) * J2_kdl.data;
 
   if (dynamic_alpha_)
   {
@@ -56,6 +60,9 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
 
   J_asym = L_asym * W * J;
   J_sim = L_sim * W * J;
+  J_comb = Eigen::MatrixXd::Zero(J_asym.rows() + J_sim.rows(), J_asym.cols());
+  J_comb.block(0, 0, J_sim.rows(), J_sim.cols()) = J_sim;
+  J_comb.block(J_sim.rows(), 0, J_asym.rows(), J_asym.cols()) = J_asym;
 
   MatrixInvRelativeJacd damped_sim_inverse =
       J_sim.transpose() *
@@ -63,12 +70,28 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   MatrixInvRelativeJacd damped_asym_inverse =
       J_asym.transpose() *
       (J_asym * J_asym.transpose() + damping_ * Matrix6d::Identity()).inverse();
+  MatrixInvECTSd damped_comb_inverse =
+      J_comb.transpose() *
+      (J_comb * J_comb.transpose() + damping_ * Matrix12d::Identity())
+          .inverse();
+
+  Vector6d sec_twist = computeAbsTask(abs_pose_);
+  Vector12d full_sec_twist = Vector12d::Zero();
+  full_sec_twist.block<6, 1>(0, 0) = sec_twist;
+  full_sec_twist.block<6, 1>(6, 0) = sec_twist;
+  MatrixInvECTSd damped_abs_inverse =
+      J_abs.transpose() *
+      (J_abs * J_abs.transpose() + damping_ * Matrix12d::Identity()).inverse();
 
   Eigen::VectorXd qdot_asym = damped_asym_inverse * rel_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
+  Eigen::VectorXd qdot_abs = damped_abs_inverse * full_sec_twist;
+  Eigen::VectorXd qdot =
+      qdot_sym +
+      (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_asym +
+      (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_abs;
 
-  return qdot_sym +
-         (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_asym;
+  return qdot;
 }
 
 double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
