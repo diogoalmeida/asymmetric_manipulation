@@ -55,18 +55,7 @@ Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state,
   Matrix12d damped_inverse =
       (J_e * J_e.transpose() + damping_ * Matrix12d::Identity());
 
-  Eigen::Matrix3d orientation_err =
-      secundary_target_.linear().transpose() * p1_eig.linear();
-  Eigen::Quaterniond quat_err(orientation_err);
-  Vector6d sec_twist = Vector6d::Zero();
-  sec_twist.block<3, 1>(0, 0) =
-      -p1_eig.translation() + secundary_target_.translation();
-  sec_twist.block<3, 1>(3, 0) =
-      secundary_target_.linear() * quat_err.inverse().vec();
-
-  sec_twist = Kp_ * sec_twist;
-
-  total_twist.block<6, 1>(0, 0) = sec_twist;
+  total_twist.block<6, 1>(0, 0) = abs_twist;
   total_twist.block<6, 1>(6, 0) = rel_twist;
   q_dot =
       J_e.transpose() * damped_inverse.colPivHouseholderQr().solve(total_twist);
