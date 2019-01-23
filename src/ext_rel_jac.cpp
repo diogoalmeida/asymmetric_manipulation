@@ -30,10 +30,8 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
            r2_conv = r2 + p2_eig.translation() - eef2_eig.translation();
 
   Matrix12d W = computeW(r1_conv, r2_conv);
-  MatrixRelLinkingd L_asym = MatrixRelLinkingd::Zero(),
-                    L_sim = MatrixRelLinkingd::Zero();
   KDL::Jacobian J1_kdl, J2_kdl;
-  Eigen::MatrixXd J_sim, J_asym, J_comb, J, J_abs;
+  Eigen::MatrixXd J_sym, J_asym, J_comb, J, J_abs;
 
   kdl_manager_->getJacobian(eef1_, state, J1_kdl);
   kdl_manager_->getJacobian(eef2_, state, J2_kdl);
@@ -51,22 +49,16 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
     alpha_ = computeAlpha(J1_kdl.data, J2_kdl.data);
   }
 
-  double scaling = 1 / ((1 - alpha_) * (1 - alpha_) + alpha_ * alpha_);
-  L_asym.block<6, 6>(0, 0) = -(1 - alpha_) * scaling * Matrix6d::Identity();
-  L_asym.block<6, 6>(0, 6) = alpha_ * scaling * Matrix6d::Identity();
-
-  L_sim.block<6, 6>(0, 0) = -Matrix6d::Identity();
-  L_sim.block<6, 6>(0, 6) = Matrix6d::Identity();
-
-  J_asym = L_asym * W * J;
-  J_sim = L_sim * W * J;
-  J_comb = Eigen::MatrixXd::Zero(J_asym.rows() + J_sim.rows(), J_asym.cols());
-  J_comb.block(0, 0, J_sim.rows(), J_sim.cols()) = J_sim;
-  J_comb.block(J_sim.rows(), 0, J_asym.rows(), J_asym.cols()) = J_asym;
+  J_asym = computeAsymJac(J, W, alpha_);
+  joint_manip_ = std::sqrt((J_asym * J_asym.transpose()).determinant());
+  J_sym = computeAsymJac(J, W, 0.5);
+  J_comb = Eigen::MatrixXd::Zero(J_asym.rows() + J_sym.rows(), J_asym.cols());
+  J_comb.block(0, 0, J_sym.rows(), J_sym.cols()) = J_sym;
+  J_comb.block(J_sym.rows(), 0, J_asym.rows(), J_asym.cols()) = J_asym;
 
   MatrixInvRelativeJacd damped_sim_inverse =
-      J_sim.transpose() *
-      (J_sim * J_sim.transpose() + damping_ * Matrix6d::Identity()).inverse();
+      J_sym.transpose() *
+      (J_sym * J_sym.transpose() + damping_ * Matrix6d::Identity()).inverse();
   MatrixInvRelativeJacd damped_asym_inverse =
       J_asym.transpose() *
       (J_asym * J_asym.transpose() + damping_ * Matrix6d::Identity()).inverse();
@@ -88,68 +80,32 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   Eigen::VectorXd qdot_abs = damped_abs_inverse * full_sec_twist;
   Eigen::VectorXd qdot =
       qdot_sym +
-      (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_asym +
-      (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_abs;
+      (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_asym +
+      (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_abs;
 
   return qdot;
+}
+
+Eigen::MatrixXd ExtRelJac::computeAsymJac(const Eigen::MatrixXd &J,
+                                          const Matrix12d &W,
+                                          double alpha) const
+{
+  MatrixRelLinkingd L = MatrixRelLinkingd::Zero();
+  double scaling = 1 / ((1 - alpha) * (1 - alpha) + alpha * alpha);
+
+  L.block<6, 6>(0, 0) = -(1 - alpha) * scaling * Matrix6d::Identity();
+  L.block<6, 6>(0, 6) = alpha * scaling * Matrix6d::Identity();
+
+  return L * W * J;
 }
 
 double ExtRelJac::computeAlpha(const Eigen::MatrixXd &J1,
                                const Eigen::MatrixXd &J2) const
 {
-  Eigen::Matrix<double, 4, 1> f_values;
-  Eigen::Vector3d position_eig;
-  Eigen::Quaterniond orientation_eig;
+  double mu1 = std::sqrt((J1 * J1.transpose()).determinant());
+  double mu2 = std::sqrt((J2 * J2.transpose()).determinant());
 
-  tf::pointMsgToEigen(abs_pose_.position, position_eig);
-  tf::quaternionMsgToEigen(abs_pose_.orientation, orientation_eig);
-
-  Eigen::AngleAxisd orientation_aa(orientation_eig);
-  double angle = orientation_aa.angle();
-
-  double d = 0;
-  for (unsigned int i = 0; i < 3; i++)
-  {
-    d = 0;
-
-    if (position_eig[i] - pos_lower_ct_[i] < 0 ||
-        pos_upper_ct_[i] - position_eig[i] < 0)
-    {
-      d = 1.0;
-    }
-    else if (position_eig[i] - pos_lower_ct_[i] < pos_thr_)
-    {
-      d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_lower_ct_[i]);
-    }
-    else if (pos_upper_ct_[i] - position_eig[i] < pos_thr_)
-    {
-      d = fabs(pos_thr_ - position_eig[i]) / fabs(pos_thr_ - pos_upper_ct_[i]);
-    }
-
-    f_values[i] = 1.5 * d * d - d * d * d;
-  }
-
-  if (fabs(angle) > ori_ct_)
-  {
-    d = 1.0;
-  }
-  else if (fabs(angle) > ori_thr_)
-  {
-    d = fabs(ori_thr_ - angle) / fabs(ori_thr_ - ori_ct_);
-  }
-
-  f_values[3] = 1.5 * d * d - d * d * d;
-
-  double mu1, mu2;
-
-  mu1 = sqrt((J1 * J1.transpose()).determinant());
-  mu2 = sqrt((J2 * J2.transpose()).determinant());
-
-  if (mu2 > mu1)
-  {
-    return 0.5 + f_values.maxCoeff();
-  }
-
-  return 0.5 - f_values.maxCoeff();
+  return mu2 / (mu1 + mu2);
 }
+
 }  // namespace coordination_algorithms

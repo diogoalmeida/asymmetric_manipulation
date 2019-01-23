@@ -13,7 +13,8 @@ AlgorithmBase::AlgorithmBase(const Vector3d &pos_upper_ct,
       pos_lower_ct_(pos_lower_ct),
       pos_thr_(pos_thr),
       ori_ct_(ori_ct),
-      ori_thr_(ori_thr)
+      ori_thr_(ori_thr),
+      joint_manip_(0.0)
 {
   if (!init())
   {

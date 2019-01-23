@@ -104,6 +104,8 @@ Eigen::VectorXd RelJac::control(const sensor_msgs::JointState &state,
       Eigen::MatrixXd::Zero(6, J2_kdl.columns());
   J_sim = L_sim * W * J;
 
+  joint_manip_ = std::sqrt((J_sim * J_sim.transpose()).determinant());
+
   MatrixInvRelativeJacd damped_sim_inverse =
       J_sim.transpose() *
       (J_sim * J_sim.transpose() + damping_ * Matrix6d::Identity()).inverse();

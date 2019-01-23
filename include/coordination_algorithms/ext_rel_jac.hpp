@@ -21,11 +21,30 @@ class ExtRelJac : public AlgorithmBase
 
  private:
   /**
-    Compute the appropriate value of alpha to constrain the absolute motion,
-  such that the absolute workspace limits are respected.
+    Initializes the controller parameters.
   **/
-  double computeAlpha(const Eigen::MatrixXd &J1,
-                      const Eigen::MatrixXd &J2) const;
+  bool init();
+
+  /**
+    Computes the value of alpha which maximizes the joint manipulability of the
+  dual-armed chain.
+
+    @param J The diagonal of the two arms' Jacobians.
+    @param W The wrench conversion matrix.
+    @returns The value of alpha which optimizes the joint manipulability.
+  **/
+  double computeAlpha(const Eigen::MatrixXd &J, const Matrix12d &W) const;
+
+  /**
+    Compute the asymmetric relatice Jacobian.
+
+    @param J The diagonal of the two arms' Jacobians.
+    @param W The wrench conversion matrix.
+    @param alpha The desired degree of cooperation.
+    @returns The asymmetric relative Jacobian.
+  **/
+  Eigen::MatrixXd computeAsymJac(const Eigen::MatrixXd &J, const Matrix12d &W,
+                                 double alpha) const;
 };
 }  // namespace coordination_algorithms
 

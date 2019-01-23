@@ -82,12 +82,19 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   alg_->kdl_manager_->getJacobian(alg_->eef1_, current_state, J1_kdl);
   alg_->kdl_manager_->getJacobian(alg_->eef2_, current_state, J2_kdl);
 
+  feedback_.manip1 =
+      std::sqrt((J1_kdl.data * J1_kdl.data.transpose()).determinant());
+  feedback_.manip2 =
+      std::sqrt((J2_kdl.data * J2_kdl.data.transpose()).determinant());
+
   alg_->setAbsolutePose(absolute_pose);
 
   updateOrientationTransform(current_state);
 
   Eigen::VectorXd joint_velocities =
       alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
+
+  feedback_.manip_joint = alg_->getJointManipulability();
 
   for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
   {

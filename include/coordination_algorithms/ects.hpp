@@ -18,6 +18,19 @@ class ECTS : public AlgorithmBase
   Eigen::VectorXd control(const sensor_msgs::JointState &state,
                           const Vector3d &r1, const Vector3d &r2,
                           const Vector6d &abs_twist, const Vector6d &rel_twist);
+
+  /**
+    Gets the target pose for the absolute task by querying TF.
+
+    @returns False if TF query fails.
+  **/
+  bool getSecundaryTask();
+
+ private:
+  bool init();
+  Eigen::Affine3d secundary_target_;
+  Eigen::MatrixXd Kp_;
+  tf::TransformListener listener_;
 };
 }  // namespace coordination_algorithms
 

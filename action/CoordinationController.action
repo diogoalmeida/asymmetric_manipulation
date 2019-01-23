@@ -8,6 +8,9 @@ bool symmetric_secundary_task
 ---
 ---
 float64 curr_alpha
+float64 manip1
+float64 manip2
+float64 manip_joint
 float64 absolute_angle
 float64 obj1_angle
 float64 obj2_angle

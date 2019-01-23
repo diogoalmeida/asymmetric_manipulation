@@ -49,6 +49,12 @@ obtain joint velocities for the two manipulators.
                                   const Vector6d &rel_twist) = 0;
 
   /**
+    Returns a joint manipulability measure for the particular algorithm
+  implementation.
+  **/
+  double getJointManipulability() const { return joint_manip_; };
+
+  /**
     Allows derived classes to obtain the required data for their secundary
   tasks.
 
@@ -81,7 +87,7 @@ obtain joint velocities for the two manipulators.
  protected:
   ros::NodeHandle nh_;
   bool dynamic_alpha_;
-  double alpha_, damping_;
+  double alpha_, damping_, joint_manip_;
   geometry_msgs::Pose abs_pose_;
   Vector6d abs_twist_;
   Vector3d pos_upper_ct_, pos_lower_ct_;
