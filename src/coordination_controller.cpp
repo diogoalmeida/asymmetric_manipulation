@@ -70,7 +70,7 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
     computeTwistVirtualSticks(current_state, r1, r2);
   }
 
-  abs_twist = Eigen::Matrix<double, 6, 1>::Zero();
+  abs_twist = computeAlignAbsoluteTwist(current_state);
   geometry_msgs::Pose absolute_pose = computeAbsolutePose(current_state);
   tf::Transform transform;
   tf::poseMsgToTF(absolute_pose, transform);
@@ -122,6 +122,7 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   q_total.block(0, 0, q1.rows(), 1) = q1;
   q_total.block(q1.rows(), 0, q2.rows(), 1) = q2;
   feedback_.joint_space_norm = (q_init_total - q_total).norm();
+  feedback_.effective_alpha = 0.0;  // TODO: compute
 
   alg_->kdl_manager_->getJointState(
       alg_->eef1_, target_joint_positions_.block(0, 0, num_joints_[LEFT], 1),
@@ -185,6 +186,25 @@ Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignRelativeTwist(
   tf::pointKDLToMsg(rel_perr, feedback_.relative_error);
 
   return rel_twist;
+}
+
+Eigen::Matrix<double, 6, 1> CoordinationController::computeAlignAbsoluteTwist(
+    const sensor_msgs::JointState &state)
+{
+  geometry_msgs::Pose abs_pose = computeAbsolutePose(state);
+  Eigen::Affine3d abs_eig, abs_target;
+  tf::poseMsgToEigen(abs_pose, abs_eig);
+  tf::transformKDLToEigen(absolute_target_, abs_target);
+  Eigen::Matrix3d relative_error =
+      abs_target.linear().transpose() * abs_eig.linear();
+  Eigen::Quaterniond quat_err(relative_error);
+  Eigen::AngleAxisd relative_error_ang_axis(quat_err);
+
+  Eigen::Matrix<double, 6, 1> abs_twist;
+  abs_twist.block<3, 1>(0, 0)
+      << abs_target.translation() - abs_eig.translation();
+  abs_twist.block<3, 1>(3, 0) = abs_target.linear() * quat_err.inverse().vec();
+  return abs_twist;
 }
 
 void CoordinationController::computeAlignVirtualSticks(
@@ -463,6 +483,38 @@ bool CoordinationController::initializeObjectFrames()
   }
 
   tf::poseMsgToKDL(object_pose.pose, obj_in_eef_[RIGHT]);
+
+  object_pose.header.frame_id = "absolute_pose";
+  object_pose.header.stamp = ros::Time(0);
+  object_pose.pose.position.x = 0;
+  object_pose.pose.position.y = 0;
+  object_pose.pose.position.z = 0;
+  object_pose.pose.orientation.x = 0;
+  object_pose.pose.orientation.y = 0;
+  object_pose.pose.orientation.z = 0;
+  object_pose.pose.orientation.w = 1;
+
+  for (attempts = 0; attempts < max_tf_attempts_; attempts++)
+  {
+    try
+    {
+      listener_.transformPose(base_, object_pose, object_pose);
+      break;
+    }
+    catch (tf::TransformException ex)
+    {
+      ROS_WARN("TF exception in coordination controller: %s", ex.what());
+      ros::Duration(0.1).sleep();
+    }
+  }
+
+  if (attempts >= max_tf_attempts_)
+  {
+    ROS_ERROR("Failed to obtain absolute pose");
+    return false;
+  }
+
+  tf::poseMsgToKDL(object_pose.pose, absolute_target_);
 
   return true;
 }

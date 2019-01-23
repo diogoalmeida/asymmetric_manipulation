@@ -58,6 +58,7 @@ class CoordinationController
   ros::Subscriber twist_sub_;
   ros::Time init_time_;
   Eigen::Vector3d pos_upper_ct_, pos_lower_ct_;
+  KDL::Frame absolute_target_;
   double pos_thr_, ori_ct_, ori_thr_;
   rviz_visual_tools::RvizVisualToolsPtr pos_ws_pub_;
   rviz_visual_tools::RvizVisualToolsPtr ori_ws_pub_;
@@ -91,6 +92,12 @@ class CoordinationController
     Compute the relative motion twist for an align task.
   **/
   Eigen::Matrix<double, 6, 1> computeAlignRelativeTwist(
+      const sensor_msgs::JointState &state);
+
+  /**
+    Compute the absolute motion twist.
+  **/
+  Eigen::Matrix<double, 6, 1> computeAlignAbsoluteTwist(
       const sensor_msgs::JointState &state);
 
   /**

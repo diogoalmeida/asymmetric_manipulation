@@ -8,6 +8,7 @@ bool symmetric_secundary_task
 ---
 ---
 float64 curr_alpha
+float64 effective_alpha
 float64 manip1
 float64 manip2
 float64 manip_joint
