@@ -26,14 +26,11 @@ class ExtRelJac : public AlgorithmBase
   bool init();
 
   /**
-    Computes the value of alpha which maximizes the joint manipulability of the
-  dual-armed chain.
-
-    @param J The diagonal of the two arms' Jacobians.
-    @param W The wrench conversion matrix.
-    @returns The value of alpha which optimizes the joint manipulability.
+    Computes the value of alpha to allocate more of the relative task to the
+    manipulator with higher manipulability.
   **/
-  double computeAlpha(const Eigen::MatrixXd &J, const Matrix12d &W) const;
+  double computeAlpha(const Eigen::MatrixXd &J1,
+                      const Eigen::MatrixXd &J2) const;
 
   /**
     Compute the asymmetric relatice Jacobian.
