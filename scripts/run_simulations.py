@@ -40,7 +40,7 @@ computed_alpha = np.array([])
 
 
 def resetVars():
-    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time
     init_time = rospy.Time(0)
     t = np.array([])
     abs_pose = np.array(None)
@@ -51,7 +51,10 @@ def resetVars():
 
 
 def feedbackCb(m):
-    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time
+    if init_time == rospy.Time(0):
+        init_time = rospy.Time.now()
+
     t = np.append(t, [(rospy.Time.now() - init_time).to_sec()])
     if abs_pose.any() == None:
         abs_pose = np.array([[m.feedback.absolute_position.x,
@@ -116,6 +119,7 @@ def setManipulationTargets(iter, list):
 
 
 def makeFirstCasePlot(color='k', lbl=None):
+    """Should plot the absolute trajectory of a system run."""
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
     matplotlib.rcParams['figure.figsize'] = (14, 9)
     fig = plt.figure(1)
@@ -131,6 +135,31 @@ def makeFirstCasePlot(color='k', lbl=None):
     ax.set_ylabel('y [m]')
     ax.set_zlabel('z [m]')
     ax.legend()
+
+
+def makeSecondCasePlot(color='k', lbl=None):
+    """Plot the effective degree of sharing."""
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
+    matplotlib.rcParams['figure.figsize'] = (14, 9)
+    fig = plt.figure(1)
+    plt.plot(t[1:], effective_alpha[1:], color=color, label=lbl)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Effective ' + r'$\alpha$')
+
+
+def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=None):
+    """Plot the execution alpha and the manipulability indices."""
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
+    matplotlib.rcParams['figure.figsize'] = (14, 9)
+    fig = plt.figure(1)
+    plt.subplot(211)
+    plt.plot(t[1:], computed_alpha[1:], color=c_alpha, label=lbl)
+    plt.ylabel(r'$\alpha$')
+    plt.subplot(212)
+    plt.plot(t[1:], manip1[1:], color=c_mu1, linestyle=line, label=r"$\mu_1$")
+    plt.plot(t[1:], manip2[1:], color=c_mu2, linestyle=line, label=r"$\mu_2$")
+    plt.xlabel('Time [s]')
+    plt.legend()
 
 
 if __name__ == "__main__":
@@ -191,45 +220,53 @@ if __name__ == "__main__":
         # TEST CASE I
         resetVars()
         # run relative Jacobian (master-slave)
-        # rospy.loginfo("Initializing relative Jacobian ('master-slave')")
-        # coordination_goal.control_mode.controller = coordination_goal.control_mode.RELJAC
-        #
-        # success = monitor_action_goal(
-        #     top_server,
-        #     coordination_client,
-        #     coordination_goal,
-        #     action_name=coordination_action_name)
-        #
-        # if not success:
-        #     top_server.set_aborted()
-        #     continue
-        #
-        # makeFirstCasePlot('r', 'Relative Jacobian')
-        #
-        # coordination_goal.control_mode.controller = coordination_goal.control_mode.EXTRELJAC
-        # coordination_goal.dynamic_alpha = False
-        # for alpha in range(0, 11, 1):
-        #     resetVars()
-        #     coordination_goal.alpha = alpha / 10.
-        #     success = monitor_action_goal(
-        #         top_server,
-        #         coordination_client,
-        #         coordination_goal,
-        #         action_name=coordination_action_name)
-        #
-        #     if not success:
-        #         top_server.set_aborted()
-        #         break
-        #
-        #     makeFirstCasePlot(str(alpha / 10.),
-        #                       r'$\alpha = $' + ' ' + str(alpha))
-        #
-        # if not success:
-        #     break
-        #
-        # plt.show()
+        rospy.loginfo("Initializing relative Jacobian ('master-slave')")
+        coordination_goal.control_mode.controller = coordination_goal.control_mode.RELJAC
+
+        success = monitor_action_goal(
+            top_server,
+            coordination_client,
+            coordination_goal,
+            action_name=coordination_action_name)
+
+        if not success:
+            top_server.set_aborted()
+            continue
+
+        makeFirstCasePlot('r', 'Relative Jacobian')
+
+        coordination_goal.control_mode.controller = coordination_goal.control_mode.EXTRELJAC
+        coordination_goal.dynamic_alpha = False
+        for alpha in range(0, 11, 1):
+            resetVars()
+            coordination_goal.alpha = alpha / 10.
+            success = monitor_action_goal(
+                top_server,
+                coordination_client,
+                coordination_goal,
+                action_name=coordination_action_name)
+
+            if not success:
+                top_server.set_aborted()
+                break
+
+            makeFirstCasePlot(str(alpha / 10.),
+                              r'$\alpha = $' + ' ' + str(alpha))
+
+        if not success:
+            break
+
+        plt.show()
+
+        try:
+            resp = sim_reset()
+        except rospy.ServiceException, e:
+            rospy.logerr("Failed to contact the simulation: %s" % e)
+            top_server.set_aborted()
+            continue
 
         # TEST CASE II
+        resetVars()
         setManipulationTargets(0, list)
 
         # run relative Jacobian (absolute limits)
@@ -241,9 +278,7 @@ if __name__ == "__main__":
         coordination_goal.limits.position_min_limits.x = 0.0
         coordination_goal.limits.position_min_limits.y = -0.2
         coordination_goal.limits.position_min_limits.z = -0.1
-        coordination_goal.limits.threshold_distance = 0.1
         coordination_goal.limits.orientation_limit_angle = 0.5
-        coordination_goal.limits.orientation_threshold = 0.5
         coordination_goal.symmetric_secundary_task = False
 
         success = monitor_action_goal(
@@ -256,6 +291,8 @@ if __name__ == "__main__":
             top_server.set_aborted()
             continue
 
+        makeSecondCasePlot('k')
+
         # rospy.loginfo(
         #     "Initializing relative Jacobian (symmetric absolute limits)")
         # coordination_goal.symmetric_secundary_task = True
@@ -267,6 +304,7 @@ if __name__ == "__main__":
         #     action_name=coordination_action_name)
 
         # run extended relative Jacobian
+        resetVars()
         rospy.loginfo("Initializing extended relative Jacobian")
         coordination_goal.control_mode.controller = coordination_goal.control_mode.EXTRELJAC
         coordination_goal.alpha = 0.9
@@ -276,6 +314,65 @@ if __name__ == "__main__":
             coordination_client,
             coordination_goal,
             action_name=coordination_action_name)
+
+        if not success:
+            top_server.set_aborted()
+            continue
+
+        makeSecondCasePlot('b')
+        plt.show()
+
+        try:
+            resp = sim_reset()
+        except rospy.ServiceException, e:
+            rospy.logerr("Failed to contact the simulation: %s" % e)
+            top_server.set_aborted()
+            continue
+
+        # TEST CASE III
+        setManipulationTargets(0, list)
+        resetVars()
+        coordination_goal.control_mode.controller = coordination_goal.control_mode.RELJACABSLIM
+        coordination_goal.limits.position_max_limits.x = 10.3
+        coordination_goal.limits.position_max_limits.y = 10.2
+        coordination_goal.limits.position_max_limits.z = 10.3
+        coordination_goal.limits.position_min_limits.x = -10.0
+        coordination_goal.limits.position_min_limits.y = -10.2
+        coordination_goal.limits.position_min_limits.z = -10.1
+        coordination_goal.limits.orientation_limit_angle = 10.5
+        coordination_goal.symmetric_secundary_task = False
+
+        coordination_goal.control_mode.controller = coordination_goal.control_mode.EXTRELJAC
+        coordination_goal.alpha = 0.5
+        coordination_goal.dynamic_alpha = False
+        success = monitor_action_goal(
+            top_server,
+            coordination_client,
+            coordination_goal,
+            action_name=coordination_action_name)
+
+        if not success:
+            top_server.set_aborted()
+            continue
+
+        makeThirdCasePlot('k', 'c', 'darkorange')
+
+        resetVars()
+        coordination_goal.control_mode.controller = coordination_goal.control_mode.EXTRELJAC
+        coordination_goal.alpha = 0.5
+        coordination_goal.dynamic_alpha = True
+        success = monitor_action_goal(
+            top_server,
+            coordination_client,
+            coordination_goal,
+            action_name=coordination_action_name)
+
+        if not success:
+            top_server.set_aborted()
+            continue
+
+        makeThirdCasePlot('b', 'c', 'darkorange', '--')
+        plt.show()
 
         if success:
             top_server.set_succeeded()
