@@ -59,7 +59,7 @@ class CoordinationController
   ros::Time init_time_;
   Eigen::Vector3d pos_upper_ct_, pos_lower_ct_;
   KDL::Frame absolute_target_;
-  double pos_thr_, ori_ct_, ori_thr_;
+  double ori_ct_;
   rviz_visual_tools::RvizVisualToolsPtr pos_ws_pub_;
   rviz_visual_tools::RvizVisualToolsPtr ori_ws_pub_;
   std::string base_;

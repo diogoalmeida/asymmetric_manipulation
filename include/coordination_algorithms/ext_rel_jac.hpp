@@ -12,7 +12,7 @@ class ExtRelJac : public AlgorithmBase
 {
  public:
   ExtRelJac(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
-            double pos_thr, double ori_ct, double ori_thr);
+            double ori_ct, bool onlyl);
   ~ExtRelJac() {}
 
   Eigen::VectorXd control(const sensor_msgs::JointState &state,
@@ -20,6 +20,7 @@ class ExtRelJac : public AlgorithmBase
                           const Vector6d &abs_twist, const Vector6d &rel_twist);
 
  private:
+  bool onlyl_;
   /**
     Initializes the controller parameters.
   **/

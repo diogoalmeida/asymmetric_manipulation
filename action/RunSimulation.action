@@ -1,2 +1,6 @@
+bool case_one
+bool case_two
+bool case_three
 ---
 ---
+string feedback

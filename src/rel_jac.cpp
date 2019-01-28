@@ -3,8 +3,8 @@
 namespace coordination_algorithms
 {
 RelJac::RelJac(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
-               double pos_thr, double ori_ct, double ori_thr)
-    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr)
+               double ori_ct)
+    : AlgorithmBase(pos_upper_ct, pos_lower_ct, ori_ct)
 {
   if (!init())
   {

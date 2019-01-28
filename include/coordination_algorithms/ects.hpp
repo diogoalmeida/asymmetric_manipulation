@@ -12,7 +12,7 @@ class ECTS : public AlgorithmBase
 {
  public:
   ECTS(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
-       double pos_thr, double ori_ct, double ori_thr);
+       double ori_ct);
   ~ECTS() {}
 
   Eigen::VectorXd control(const sensor_msgs::JointState &state,

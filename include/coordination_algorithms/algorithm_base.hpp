@@ -28,7 +28,7 @@ class AlgorithmBase
     Construct a coordination algorithm.
   **/
   AlgorithmBase(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
-                double pos_thr, double ori_ct, double ori_thr);
+                double ori_ct);
   ~AlgorithmBase() {}
 
   /**
@@ -73,6 +73,11 @@ obtain joint velocities for the two manipulators.
   void setDynamicAlpha(bool val) { dynamic_alpha_ = val; }
 
   /**
+    Sets whether or not absolute limits will be considered in the ik solution.
+  **/
+  void setAbsoluteLimits(bool val) { use_absolute_limits_ = val; }
+
+  /**
     Provides the algorithm with information on the absolute pose of the
   dual-armed system.
   **/
@@ -86,12 +91,12 @@ obtain joint velocities for the two manipulators.
 
  protected:
   ros::NodeHandle nh_;
-  bool dynamic_alpha_;
+  bool dynamic_alpha_, use_absolute_limits_;
   double alpha_, damping_, joint_manip_;
   geometry_msgs::Pose abs_pose_;
   Vector6d abs_twist_;
   Vector3d pos_upper_ct_, pos_lower_ct_;
-  double pos_thr_, ori_thr_, ori_ct_;
+  double ori_ct_;
   double sec_pos_gain_, sec_ori_gain_;
 
   /**

@@ -3,17 +3,14 @@
 namespace coordination_algorithms
 {
 AlgorithmBase::AlgorithmBase(const Vector3d &pos_upper_ct,
-                             const Vector3d &pos_lower_ct, double pos_thr,
-                             double ori_ct, double ori_thr)
+                             const Vector3d &pos_lower_ct, double ori_ct)
     : nh_("~"),
       alpha_(0.5),
       damping_(0.0001),
       dynamic_alpha_(false),
       pos_upper_ct_(pos_upper_ct),
       pos_lower_ct_(pos_lower_ct),
-      pos_thr_(pos_thr),
       ori_ct_(ori_ct),
-      ori_thr_(ori_thr),
       joint_manip_(0.0)
 {
   if (!init())

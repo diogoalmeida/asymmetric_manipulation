@@ -3,8 +3,8 @@
 namespace coordination_algorithms
 {
 ExtRelJac::ExtRelJac(const Vector3d &pos_upper_ct, const Vector3d &pos_lower_ct,
-                     double pos_thr, double ori_ct, double ori_thr)
-    : AlgorithmBase(pos_upper_ct, pos_lower_ct, pos_thr, ori_ct, ori_thr)
+                     double ori_ct, bool onlyl)
+    : AlgorithmBase(pos_upper_ct, pos_lower_ct, ori_ct), onlyl_(onlyl)
 {
 }
 
@@ -77,11 +77,21 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
 
   Eigen::VectorXd qdot_asym = damped_asym_inverse * rel_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
-  Eigen::VectorXd qdot_abs = damped_abs_inverse * full_sec_twist;
-  Eigen::VectorXd qdot =
-      qdot_sym +
-      (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_asym +
-      (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_abs;
+  Eigen::VectorXd qdot_abs =
+      use_absolute_limits_ * damped_abs_inverse * full_sec_twist;
+  Eigen::VectorXd qdot;
+
+  if (!onlyl_)
+  {
+    qdot = qdot_sym +
+           (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_asym +
+           (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_abs;
+  }
+  else
+  {
+    qdot = qdot_asym +
+           (Matrix14d::Identity() - damped_asym_inverse * J_asym) * qdot_abs;
+  }
 
   return qdot;
 }

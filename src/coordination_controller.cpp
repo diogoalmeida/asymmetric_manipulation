@@ -122,7 +122,6 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   q_total.block(0, 0, q1.rows(), 1) = q1;
   q_total.block(q1.rows(), 0, q2.rows(), 1) = q2;
   feedback_.joint_space_norm = (q_init_total - q_total).norm();
-  feedback_.effective_alpha = 0.0;  // TODO: compute
 
   alg_->kdl_manager_->getJointState(
       alg_->eef1_, target_joint_positions_.block(0, 0, num_joints_[LEFT], 1),
@@ -277,9 +276,7 @@ bool CoordinationController::parseGoal(
 
   tf::pointMsgToEigen(goal->limits.position_max_limits, pos_upper_ct_);
   tf::pointMsgToEigen(goal->limits.position_min_limits, pos_lower_ct_);
-  pos_thr_ = goal->limits.threshold_distance;
   ori_ct_ = goal->limits.orientation_limit_angle;
-  ori_thr_ = goal->limits.orientation_threshold;
 
   // publish workspace limits. TODO: parameterize?
   ori_ws_pub_->deleteAllMarkers();
@@ -310,7 +307,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::ECTS>(
-        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, ori_ct_);
   }
   else if (goal->control_mode.controller == goal->control_mode.EXTRELJAC)
   {
@@ -320,7 +317,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::ExtRelJac>(
-        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, ori_ct_, goal->use_asymmetric_l_only);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJAC)
   {
@@ -330,7 +327,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::RelJac>(
-        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, ori_ct_);
   }
   else if (goal->control_mode.controller == goal->control_mode.RELJACABSLIM)
   {
@@ -340,7 +337,7 @@ bool CoordinationController::parseGoal(
     }
 
     alg_ = std::make_shared<coordination_algorithms::RelJacAbsLim>(
-        pos_upper_ct_, pos_lower_ct_, pos_thr_, ori_ct_, ori_thr_);
+        pos_upper_ct_, pos_lower_ct_, ori_ct_);
 
     if (goal->symmetric_secundary_task)
     {
@@ -358,6 +355,7 @@ bool CoordinationController::parseGoal(
       .sleep();  // let the controller get the updated simulation joint state
   ros::spinOnce();
 
+  alg_->setAbsoluteLimits(goal->use_limits);
   alg_->setDynamicAlpha(goal->dynamic_alpha);
 
   if (!goal->dynamic_alpha)
