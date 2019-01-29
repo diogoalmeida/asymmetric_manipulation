@@ -1,7 +1,7 @@
 kinematic_chain_base_link: torso
 max_tf_attempts: 5
 max_joint_pos_error: 0.1
-loop_rate: 1000
+loop_rate: 100
 left_obj_frame: left_object
 right_obj_frame: right_object
 
@@ -33,14 +33,22 @@ eef2:
   sensor_topic: ""
 
 secundary_gain:
-  data: [10.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 10.0, 0.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 10.0, 0.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 10.0, 0.0,
-         0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+  data: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+         0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
-marker_servers: ['relative_motion_markers', 'absolute_motion_markers', 'secundary_motion_markers']
+marker_servers: ['relative_motion_markers', 'absolute_motion_markers', 'secundary_motion_markers', 'camera_markers']
+
+camera_markers:
+  marker_names: ['camera']
+
+  camera:
+    parent_frame: 'base'
+    name: 'camera'
+    initial_pose: [0.5, 0.0, 0.3, 0, 0, 0, 1]
 
 relative_motion_markers:
   marker_names: ['obj1', 'obj2']

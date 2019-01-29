@@ -85,6 +85,15 @@ obtain joint velocities for the two manipulators.
   void setAlpha(double alpha) { alpha_ = alpha; }
   double getAlpha() const { return alpha_; }
 
+  /**
+    Get the object frame velocities.
+  **/
+  void getVelocities(Vector6d &v1, Vector6d &v2) const
+  {
+    v1 = v1_;
+    v2 = v2_;
+  };
+
   std::shared_ptr<generic_control_toolbox::KDLManager> kdl_manager_;
   std::string eef1_, eef2_;
   std::string base_;
@@ -94,7 +103,7 @@ obtain joint velocities for the two manipulators.
   bool dynamic_alpha_, use_absolute_limits_;
   double alpha_, damping_, joint_manip_;
   geometry_msgs::Pose abs_pose_;
-  Vector6d abs_twist_;
+  Vector6d abs_twist_, v1_, v2_;
   Vector3d pos_upper_ct_, pos_lower_ct_;
   double ori_ct_;
   double sec_pos_gain_, sec_ori_gain_;

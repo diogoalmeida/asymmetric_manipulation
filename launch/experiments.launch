@@ -24,4 +24,17 @@
   <node name="object_server" type="object_server" pkg="object_server" output="screen">
     <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
   </node>
+
+
+  <node name="camera_info" pkg="rostopic" type="rostopic"
+      args="pub camera_info sensor_msgs/CameraInfo
+     '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: 'camera'},
+      height: 720, width: 1280, distortion_model: 'plumb_bob',
+      D: [0],
+      K: [600.0, 0.0, 640, 0.0, 600.0, 360.0, 0.0, 0.0, 1.0],
+      R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+      P: [600.0, 0.0, 640, 0.0, 0.0, 600, 360, 0.0, 0.0, 0.0, 1.0, 0.0],
+      binning_x: 0, binning_y: 0,
+      roi: {x_offset: 0, y_offset: 0, height: 0, width: 0, do_rectify: false}}' -r 2"
+      output="screen"/>
 </launch>

@@ -93,6 +93,10 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
            (Matrix14d::Identity() - damped_asym_inverse * J_asym) * qdot_abs;
   }
 
+  Vector12d joint_twist = W * J * qdot;
+  v1_ = joint_twist.block<6, 1>(0, 0);
+  v2_ = joint_twist.block<6, 1>(6, 0);
+
   return qdot;
 }
 

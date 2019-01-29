@@ -56,7 +56,7 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
     return ret;
   }
 
-  Eigen::Matrix<double, 6, 1> rel_twist, abs_twist;
+  Eigen::Matrix<double, 6, 1> rel_twist, abs_twist, v1, v2;
   Eigen::Vector3d r1, r2;
 
   if (control_type_ == align)
@@ -92,9 +92,14 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   updateOrientationTransform(current_state);
 
   Eigen::VectorXd joint_velocities =
-      alg_->control(current_state, r1, r2, abs_twist, Kp_r_ * rel_twist);
+      alg_->control(current_state, r1, r2, 0 * abs_twist, Kp_r_ * rel_twist);
+
+  alg_->getVelocities(v1, v2);
 
   feedback_.manip_joint = alg_->getJointManipulability();
+  tf::twistEigenToMsg(v1, feedback_.v1);
+  tf::twistEigenToMsg(v2, feedback_.v2);
+  feedback_.dt = dt.toSec();
 
   for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
   {

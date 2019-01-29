@@ -60,6 +60,9 @@ Eigen::VectorXd ECTS::control(const sensor_msgs::JointState &state,
   q_dot =
       J_e.transpose() * damped_inverse.colPivHouseholderQr().solve(total_twist);
 
+  Vector12d joint_twist = W * J * q_dot;
+  v1_ = joint_twist.block<6, 1>(0, 0);
+  v2_ = joint_twist.block<6, 1>(6, 0);
   return q_dot;
 }
 }  // namespace coordination_algorithms

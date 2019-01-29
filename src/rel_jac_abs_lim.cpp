@@ -89,8 +89,14 @@ Eigen::VectorXd RelJacAbsLim::control(const sensor_msgs::JointState &state,
   Eigen::VectorXd qdot_sec =
       use_absolute_limits_ * damped_sec_inverse * full_sec_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
+  Eigen::VectorXd qdot =
+      qdot_sym +
+      (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_sec;
 
-  return qdot_sym +
-         (Matrix14d::Identity() - damped_sim_inverse * J_sim) * qdot_sec;
+  Vector12d joint_twist = W * J * qdot;
+  v1_ = joint_twist.block<6, 1>(0, 0);
+  v2_ = joint_twist.block<6, 1>(6, 0);
+
+  return qdot;
 }
 }  // namespace coordination_algorithms

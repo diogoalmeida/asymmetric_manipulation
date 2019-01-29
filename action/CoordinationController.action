@@ -9,6 +9,7 @@ bool symmetric_secundary_task
 bool use_asymmetric_l_only
 ---
 ---
+float64 dt
 float64 curr_alpha
 float64 manip1
 float64 manip2
@@ -19,5 +20,8 @@ float64 obj2_angle
 float64 joint_space_norm
 float64 relative_error_norm
 float64 relative_error_angle
+geometry_msgs/Twist v1
+geometry_msgs/Twist v2
+geometry_msgs/Twist va
 geometry_msgs/Point relative_error
 geometry_msgs/Point absolute_position
