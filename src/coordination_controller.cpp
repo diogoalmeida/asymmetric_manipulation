@@ -99,6 +99,7 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
   feedback_.manip_joint = alg_->getJointManipulability();
   tf::twistEigenToMsg(v1, feedback_.v1);
   tf::twistEigenToMsg(v2, feedback_.v2);
+  tf::twistEigenToMsg(0.5 * (v1 + v2), feedback_.va);
   feedback_.dt = dt.toSec();
 
   for (unsigned int i = 0; i < num_joints_[LEFT]; i++)
