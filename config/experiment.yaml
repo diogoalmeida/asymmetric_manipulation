@@ -1,7 +1,7 @@
 kinematic_chain_base_link: torso
 max_tf_attempts: 5
 max_joint_pos_error: 0.1
-loop_rate: 50
+loop_rate: 100
 left_obj_frame: left_object
 right_obj_frame: right_object
 
