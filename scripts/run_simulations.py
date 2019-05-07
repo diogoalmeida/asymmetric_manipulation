@@ -173,24 +173,26 @@ def setManipulationTargets(case, iter, list):
 def makeFirstCasePlot(iter, color='k', title=None):
     """Should plot the absolute trajectory of a system run."""
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, va
-    matplotlib.rcParams['figure.figsize'] = (18, 9)
+    matplotlib.rcParams['figure.figsize'] = (8, 8)
     fig = plt.figure(iter)
     plt.subplot(211)
-    plt.ylim(-0.05, 0.18)
+    plt.ylim(-0.1, 0.025)
     plt.plot(t[1:], va[1:, 0], color="k", label="$v_x$")
-    plt.plot(t[1:], va[1:, 1], color="teal", label="$v_y$")
-    plt.plot(t[1:], va[1:, 2], color="darkorange", label="$v_z$")
-    plt.ylabel("Linear velocity [m/s]")
+    plt.plot(t[1:], va[1:, 1], color="r", label="$v_y$")
+    plt.plot(t[1:], va[1:, 2], color="b", label="$v_z$")
+    plt.ylabel("Linear [m/s]")
     plt.legend()
     plt.title(title)
     plt.subplot(212)
-    plt.ylim(-0.15, 0.4)
+    plt.ylim(-0.1, 0.2)
     plt.plot(t[1:], va[1:, 3], color="k", label=r"$\omega_x$")
-    plt.plot(t[1:], va[1:, 4], color="teal", label=r"$\omega_y$")
-    plt.plot(t[1:], va[1:, 5], color="darkorange", label=r"$\omega_z$")
-    plt.ylabel("Angular velocity [rad/s]")
+    plt.plot(t[1:], va[1:, 4], color="r", label=r"$\omega_y$")
+    plt.plot(t[1:], va[1:, 5], color="b", label=r"$\omega_z$")
+
+    plt.ylabel("Angular [rad/s]")
     plt.xlabel("Time [s]")
     plt.legend()
+    plt.tight_layout()
 
 
 def makeSecondCasePlot(color='k', lbl=None):
@@ -220,23 +222,23 @@ def getDir():
 
 def makeErrorPlot(color='k', lbl=True, line='-'):
     global t, relative_error, relative_error_angle
-    matplotlib.rcParams['figure.figsize'] = (18, 9)
+    matplotlib.rcParams['figure.figsize'] = (8, 8)
     fig = plt.figure(1)
     plt.subplot(211)
     if lbl:
         plt.plot(t[1:], relative_error[1:, 0],
-                 color="k", label=r"$v_x$", linestyle=line)
+                 color="k", label=r"$x$", linestyle=line)
         plt.plot(t[1:], relative_error[1:, 1],
-                 color="teal", label=r"$v_y$", linestyle=line)
+                 color="r", label=r"$y$", linestyle=line)
         plt.plot(t[1:], relative_error[1:, 2],
-                 color="orange", label=r"$v_z$", linestyle=line)
+                 color="b", label=r"$z$", linestyle=line)
     else:
         plt.plot(t[1:], relative_error[1:, 0],
                  color="k", linestyle=line)
         plt.plot(t[1:], relative_error[1:, 1],
-                 color="teal", linestyle=line)
+                 color="r", linestyle=line)
         plt.plot(t[1:], relative_error[1:, 2],
-                 color="orange", linestyle=line)
+                 color="b", linestyle=line)
     plt.ylabel("Error [m]")
     plt.title("Linear relative error")
     plt.legend()
@@ -245,9 +247,10 @@ def makeErrorPlot(color='k', lbl=True, line='-'):
              color="k", linestyle=line)
 
     plt.ylabel("Angle [rad]")
-    plt.xlabel("Time [m]")
+    plt.xlabel("Time [s]")
     plt.title("Angular relative error")
-    plt.legend()
+    # plt.legend()
+    plt.tight_layout()
 
 
 def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=None):
@@ -285,7 +288,7 @@ def sendCaseOne(server, client, goal, action_name):
     for i in range(len(init_obj_frames['I'])):
         setManipulationTargets('I', i, list)
         iter = 1
-        for alpha in (2, 5, 8):
+        for alpha in (8, ):
             resetVars()
             goal.alpha = alpha / 10.
 
@@ -305,10 +308,9 @@ def sendCaseOne(server, client, goal, action_name):
                 return False
 
             rospy.logwarn("JOINT SPACE NORM: %.2f" % qnorm)
-            makeFirstCasePlot(
-                iter, 'k', r"Absolute motion (ECTS), $\alpha = " + str(alpha / 10.) + "$")
-            saveFig(dir, "abs_motion_ects_" +
-                    str(alpha / 10.) + "_" + str(i), iter)
+            makeFirstCasePlot(iter, 'k', r"Absolute motion (ECTS), $\alpha = " + str(alpha / 10.) + "$")
+            saveFig(dir, "abs_motion_ects_" + str(alpha / 10.) + "_" + str(i), iter)
+            plt.close()
 
             goal.control_mode.controller = goal.control_mode.EXTRELJAC
             resetVars()
@@ -326,12 +328,11 @@ def sendCaseOne(server, client, goal, action_name):
                 return False
 
             rospy.logwarn("JOINT SPACE NORM: %.2f" % qnorm)
-            makeFirstCasePlot(
-                iter + 1, "k", r"Absolute motion (relative Jacobian), $\alpha = " + str(alpha / 10.) + "$")
+            makeFirstCasePlot(iter + 1, "k", r"Absolute motion (Ours), $\alpha = " + str(alpha / 10.) + "$")
 
-            saveFig(dir, "abs_motion_reljac_" +
-                    str(alpha / 10.) + "_" + str(i), iter + 1)
-            plt.show()
+            saveFig(dir, "abs_motion_reljac_" + str(alpha / 10.) + "_" + str(i), iter + 1)
+            plt.close()
+            # plt.show()
             iter += 2
         if not success:
             break
@@ -343,7 +344,7 @@ def sendCaseOne(server, client, goal, action_name):
             server.set_aborted()
             return False
 
-        return True
+    return True
 
 
 def sendCaseTwo(server, client, goal, action_name):
@@ -387,8 +388,7 @@ def sendCaseTwo(server, client, goal, action_name):
         if not success:
             return False
 
-        makeErrorPlot(
-            'k', True)
+        makeErrorPlot('grey', False, '--')
         resetVars()
 
         goal.use_asymmetric_l_only = False
@@ -400,12 +400,11 @@ def sendCaseTwo(server, client, goal, action_name):
         if not success:
             return False
 
-        makeErrorPlot(
-            'grey', False, '--')
+        makeErrorPlot('k', True)
         saveFig(dir, "asymmetric_only_" + str(i))
         plt.show()
 
-        return True
+    return True
 
 
 def sendCaseThree(server, client, goal, action_name):
@@ -525,4 +524,5 @@ if __name__ == "__main__":
 
         except rospy.exceptions.ROSTimeMovedBackwardsException, e:
             rospy.logwarn("Simulation reset detected")
+            top_server.set_aborted()
             continue
