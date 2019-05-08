@@ -8,9 +8,9 @@ setup a numerical simulation of the different methods.
 
 We implement controllers that make use of:
 1. The [Cooperative Task Space](https://dynamicsystems.asmedigitalcollection.asme.org/pdfaccess.ashx?url=/data/journals/jdsmaa/26230/691_1.pdf) (CTS)
-* The [Extended CTS](https://ieeexplore.ieee.org/abstract/document/7759161)
-* A relative Jacobian formulation
-* Our extended relative Jacobian
+2. The [Extended CTS](https://ieeexplore.ieee.org/abstract/document/7759161)
+3. A relative Jacobian formulation
+4. Our extended relative Jacobian
 
 Installation
 ==
