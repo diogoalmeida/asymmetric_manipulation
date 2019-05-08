@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>coordination_experiments</name>
-  <version>1.0.0</version>
+  <name>asymmetric_manipulation</name>
+  <version>2.0.0</version>
   <description>
-    Implements controllers and experiments for different dual-arm coordination algorithms.
+    Implements controllers and experiments for different dual-arm coordination algorithms,
+    with an emphasis on the resolution of the coordination variables into end-effector velocities.
   </description>
   <author email="diogoa@kth.se">Diogo Almeida</author>
   <maintainer email="diogoa@kth.se">Diogo Almeida</maintainer>

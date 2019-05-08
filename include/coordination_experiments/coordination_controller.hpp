@@ -1,17 +1,17 @@
 #ifndef __COORDINATION_CONTROLLER__
 #define __COORDINATION_CONTROLLER__
 
-#include <coordination_experiments/CoordinationControllerAction.h>
+#include <asymmetric_manipulation/CoordinationControllerAction.h>
 #include <ros/ros.h>
 #include <rviz_visual_tools/rviz_visual_tools.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_kdl.h>
-#include <coordination_algorithms/ects.hpp>
-#include <coordination_algorithms/ext_rel_jac.hpp>
-#include <coordination_algorithms/rel_jac.hpp>
-#include <coordination_algorithms/rel_jac_abs_lim.hpp>
+#include <asymmetric_manipulation/ects.hpp>
+#include <asymmetric_manipulation/ext_rel_jac.hpp>
+#include <asymmetric_manipulation/rel_jac.hpp>
+#include <asymmetric_manipulation/rel_jac_abs_lim.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <generic_control_toolbox/controller_template.hpp>
 
@@ -25,8 +25,10 @@ namespace coordination_experiments
 {
 class CoordinationController
     : public generic_control_toolbox::ControllerTemplate<
-          CoordinationControllerAction, CoordinationControllerGoal,
-          CoordinationControllerFeedback, CoordinationControllerResult>
+          asymmetric_manipulation::CoordinationControllerAction,
+          asymmetric_manipulation::CoordinationControllerGoal,
+          asymmetric_manipulation::CoordinationControllerFeedback,
+          asymmetric_manipulation::CoordinationControllerResult>
 {
  public:
   CoordinationController(const std::string &action_name);
@@ -35,7 +37,9 @@ class CoordinationController
  protected:
   sensor_msgs::JointState controlAlgorithm(
       const sensor_msgs::JointState &current_state, const ros::Duration &dt);
-  bool parseGoal(boost::shared_ptr<const CoordinationControllerGoal> goal);
+  bool parseGoal(boost::shared_ptr<
+                 const asymmetric_manipulation::CoordinationControllerGoal>
+                     goal);
   void resetController();
 
  private:

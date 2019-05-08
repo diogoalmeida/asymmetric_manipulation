@@ -4,9 +4,10 @@ namespace coordination_experiments
 {
 CoordinationController::CoordinationController(const std::string &action_name)
     : ControllerTemplate<
-          CoordinationControllerAction, CoordinationControllerGoal,
-          CoordinationControllerFeedback, CoordinationControllerResult>(
-          action_name)
+          asymmetric_manipulation::CoordinationControllerAction,
+          asymmetric_manipulation::CoordinationControllerGoal,
+          asymmetric_manipulation::CoordinationControllerFeedback,
+          asymmetric_manipulation::CoordinationControllerResult>(action_name)
 {
   nh_ = ros::NodeHandle("~");
 
@@ -276,7 +277,8 @@ void CoordinationController::computeTwistVirtualSticks(
 }
 
 bool CoordinationController::parseGoal(
-    boost::shared_ptr<const CoordinationControllerGoal> goal)
+    boost::shared_ptr<const asymmetric_manipulation::CoordinationControllerGoal>
+        goal)
 {
   std_srvs::Empty srv;
 

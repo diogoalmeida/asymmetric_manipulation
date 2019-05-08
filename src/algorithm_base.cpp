@@ -1,4 +1,4 @@
-#include <coordination_algorithms/algorithm_base.hpp>
+#include <asymmetric_manipulation/algorithm_base.hpp>
 
 namespace coordination_algorithms
 {

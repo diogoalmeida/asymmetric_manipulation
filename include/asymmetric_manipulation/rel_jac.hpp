@@ -1,7 +1,7 @@
 #ifndef __RELATIVE_JACOBIAN__
 #define __RELATIVE_JACOBIAN__
 
-#include <coordination_algorithms/algorithm_base.hpp>
+#include <asymmetric_manipulation/algorithm_base.hpp>
 
 namespace coordination_algorithms
 {

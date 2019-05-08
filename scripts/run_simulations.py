@@ -11,7 +11,7 @@ import numpy as np
 import rospkg
 import rospy
 import tf
-from coordination_experiments.msg import (CoordinationControllerAction,
+from asymmetric_manipulation.msg import (CoordinationControllerAction,
                                           CoordinationControllerFeedback,
                                           CoordinationControllerGoal,
                                           RunSimulationAction,

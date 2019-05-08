@@ -1,4 +1,4 @@
-#include <coordination_algorithms/ects.hpp>
+#include <asymmetric_manipulation/ects.hpp>
 
 namespace coordination_algorithms
 {

@@ -1,4 +1,4 @@
-#include <coordination_algorithms/rel_jac_abs_lim.hpp>
+#include <asymmetric_manipulation/rel_jac_abs_lim.hpp>
 
 namespace coordination_algorithms
 {
