@@ -22,9 +22,37 @@ In addition, we have dependencies on the following packages:
 * [object_server](https://github.com/diogoalmeida/ros_object_server)
 * [rviz_visual_tools](https://github.com/PickNikRobotics/rviz_visual_tools)
 
-Running the numerical simulations
+Simulating a dual-arm manipulator
 ==
-The script `run_simulations.py` runs the simulations from which the article's results were obtained,
+You can setup a simulation of a RethinkRobotics' Baxter by running the `experiments` launch file,
+```
+ $ roslaunch asymmetric_manipulation experiments.launch
+```
+This will launch a kinematic simulation of Baxter. If you open RViz, you can load the configuration file `config/display.rviz`
+to visualize the robot. This will add two interactive markers which represent object frames, rigidly linked to the robot's end-effectors.
+The relative motion task of the provided controllers is to align these frames.
+
+Testing the cooperative controllers
+==
+We provide an actionlib server to interact with the different methods. This can be called through the `axclient.py` GUI,
+```
+ $ rosrun actionlib axclient.py /coordination_controller/coordination_control
+```
+
+Available arguments
+===
+1. The argument `control_mode/controller` sets the method used in executing the relative motion task. Your options are:
+    * 0: Reset to the initial state
+    * 1: Uses the ECTS method
+    * 2: Uses our extended Relative Jacobian
+    * 3: Uses the relative Jacobian with a secondary task which regulates Baxter's left arm pose. The target for the secondary task can be set by regulating the 'Secondary Task' display in RViz
+2. You can set a maximum simulation time with the argument `max_time`
+3. The `alpha` parameter sets the corresponding value for the ECTS and our methods (between 0 and 1)
+4. If you set `use_asymmetric_l_only` we will not project our Jacobian's solution in the nullspace of the symmetric relative Jacobian.
+
+Replicating our results
+==
+The script `run_simulations.py` runs the simulations from which the article's results were obtained. After launching the Baxter's simulation by using the `experiments` launch file, run on a separate terminal
 ```
 $ rosrun asymmetric_manipulation run_simulations.py
 ```

@@ -5,25 +5,25 @@
 
   <param if="$(arg kinematic_sim)" name="robot_description" command="$(find xacro)/xacro.py --inorder $(find baxter_description)/urdf/baxter.urdf.xacro gazebo:=false"/>
   <node if="$(arg kinematic_sim)" name="robot_kinematic_simulation" type="kinematic_simulation" pkg="robot_kinematic_simulation" output="screen">
-    <rosparam command="load" file="$(find coordination_experiments)/config/simulation.yaml"/>
+    <rosparam command="load" file="$(find asymmetric_manipulation)/config/simulation.yaml"/>
   </node>
   <node if="$(arg kinematic_sim)" pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
     <remap from="joint_states" to="robot/joint_states" />
   </node>
   <include unless="$(arg kinematic_sim)" file="$(find baxter_command_msg_conversion)/launch/msg_conversion.launch"/>
 
-  <node if="$(arg debug)" pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen" launch-prefix="xterm -e gdb --args">
+  <node if="$(arg debug)" pkg="asymmetric_manipulation" type="coordination_controller" name="coordination_controller" output="screen" launch-prefix="xterm -e gdb --args">
     <remap from="joint_states" to="/robot/joint_states"/>
-    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+    <rosparam command="load" file="$(find asymmetric_manipulation)/config/experiment.yaml"/>
   </node>
 
-  <node unless="$(arg debug)" pkg="coordination_experiments" type="coordination_controller" name="coordination_controller" output="screen">
+  <node unless="$(arg debug)" pkg="asymmetric_manipulation" type="coordination_controller" name="coordination_controller" output="screen">
     <remap from="joint_states" to="/robot/joint_states"/>
-    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+    <rosparam command="load" file="$(find asymmetric_manipulation)/config/experiment.yaml"/>
   </node>
 
   <node name="object_server" type="object_server" pkg="object_server" output="screen">
-    <rosparam command="load" file="$(find coordination_experiments)/config/experiment.yaml"/>
+    <rosparam command="load" file="$(find asymmetric_manipulation)/config/experiment.yaml"/>
   </node>
 
 
