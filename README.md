@@ -22,6 +22,17 @@ In addition, we have dependencies on the following packages:
 * [object_server](https://github.com/diogoalmeida/ros_object_server)
 * [rviz_visual_tools](https://github.com/PickNikRobotics/rviz_visual_tools)
 
+#### Instructions for configuring a new workspace
+You can setup a workspace with the required packages to run this work by inputting the following commands on a terminal:
+```
+  $ mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src
+  $ catkin_init_workspace
+  $ wstool init && wstool merge https://raw.githubusercontent.com/diogoalmeida/asymmetric_manipulation/master/.rosinstall
+  $ wstool up
+  $ cd ~/catkin_ws
+  $ catkin_make
+```
+
 Simulating a dual-arm manipulator
 ==
 You can setup a simulation of a RethinkRobotics' Baxter by running the `experiments` launch file,
