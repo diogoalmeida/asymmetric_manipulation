@@ -1,6 +1,7 @@
 bool case_one
 bool case_two
 bool case_three
+bool show_plots
 ---
 ---
 string feedback

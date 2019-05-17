@@ -38,17 +38,11 @@ init_obj_frames = {
         'right': [(0.445, -0.05, 0.21), (-0.023947, -0.0081608, -0.46361, 0.88568)]
     }],
     'III': [{
-        'left': [(0.54125, -0.1, 0.16), (-0.018431, -0.09522, 0.34287, 0.93436)],
-        'right': [(0.54125, -0.1, 0.16), (0.17814, 0.28162, 0.71979, 0.60898)]
+        'left': [(0.36, 0.15, 0.36), (0, 0, 0, 1)],
+        'right': [(0.508, -0.13, -0.04), (0, 0, 0, 1)]
     }, {
-        'left': [(0.61275, -0.08, 0.24216), (-0.016279, -0.091959, 0.12224, 0.9881)],
-        'right': [(0.61275, -0.08, 0.24216), (-0.076637, -0.048926, 0.78317, 0.61512)]
-    }, {
-        'left': [(0.57, 0.21, 0.2), (0, 0, 0, 1)],
-        'right': [(0.57, 0.21, 0.64), (0, 0, 0, 1)]
-    }, {
-        'left': [(0.45, 0.24, 0.51), (0, 0, 0.26211, 0.96504)],
-        'right': [(0.6, -0.14, 0.64), (0, 0, 0.26211, 0.96504)]
+        'left': [(0.445, -0.05, 0.21), (-0.024939, -0.011954, -0.053292, 0.9982)],
+        'right': [(0.445, -0.05, 0.21), (-0.023947, -0.0081608, -0.46361, 0.88568)]
     }]}
 
 base_frame = 'torso'
@@ -113,8 +107,7 @@ def feedbackCb(m):
         va = np.append(va, [[m.feedback.va.linear.x, m.feedback.va.linear.y, m.feedback.va.linear.z,
                              m.feedback.va.angular.x, m.feedback.va.angular.y, m.feedback.va.angular.z]], axis=0)
 
-    relative_error_angle = np.append(
-        relative_error_angle, [m.feedback.relative_error_angle])
+    relative_error_angle = np.append(relative_error_angle, [m.feedback.relative_error_angle])
     manip1 = np.append(manip1, [m.feedback.manip1])
     manip2 = np.append(manip2, [m.feedback.manip2])
     computed_alpha = np.append(computed_alpha, [m.feedback.curr_alpha])
@@ -211,7 +204,7 @@ def getDir():
     rospack = rospkg.RosPack()
 
     now = datetime.datetime.now()
-    path_name = rospack.get_path("coordination_experiments") + "/images/" + str(
+    path_name = rospack.get_path("asymmetric_manipulation") + "/images/" + str(
         now.month) + str(now.day) + str(now.hour) + str(now.minute) + str(now.second) + "/"
 
     if not os.path.exists(path_name):
@@ -253,7 +246,7 @@ def makeErrorPlot(color='k', lbl=True, line='-'):
     plt.tight_layout()
 
 
-def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=None):
+def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=None, plot = False):
     """Plot the execution alpha and the manipulability indices."""
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
     matplotlib.rcParams['figure.figsize'] = (9, 7)
@@ -270,8 +263,11 @@ def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=
     plt.xlabel('Time [s]')
     plt.legend()
 
+    if plot:
+        plt.show()
 
-def sendCaseOne(server, client, goal, action_name):
+
+def sendCaseOne(server, client, goal, action_name, plot=False):
     """
         Run case study one experiments.
 
@@ -310,7 +306,11 @@ def sendCaseOne(server, client, goal, action_name):
             rospy.logwarn("JOINT SPACE NORM: %.2f" % qnorm)
             makeFirstCasePlot(iter, 'k', r"Absolute motion (ECTS), $\alpha = " + str(alpha / 10.) + "$")
             saveFig(dir, "abs_motion_ects_" + str(alpha / 10.) + "_" + str(i), iter)
-            plt.close()
+
+            if plot:
+                plt.show()
+            else:
+                plt.close()
 
             goal.control_mode.controller = goal.control_mode.EXTRELJAC
             resetVars()
@@ -331,8 +331,12 @@ def sendCaseOne(server, client, goal, action_name):
             makeFirstCasePlot(iter + 1, "k", r"Absolute motion (Ours), $\alpha = " + str(alpha / 10.) + "$")
 
             saveFig(dir, "abs_motion_reljac_" + str(alpha / 10.) + "_" + str(i), iter + 1)
-            plt.close()
-            # plt.show()
+
+            if plot:
+                plt.show()
+            else:
+                plt.close()
+
             iter += 2
         if not success:
             break
@@ -347,7 +351,7 @@ def sendCaseOne(server, client, goal, action_name):
     return True
 
 
-def sendCaseTwo(server, client, goal, action_name):
+def sendCaseTwo(server, client, goal, action_name, plot=False):
     """
         Run case study two.
 
@@ -402,12 +406,14 @@ def sendCaseTwo(server, client, goal, action_name):
 
         makeErrorPlot('k', True)
         saveFig(dir, "asymmetric_only_" + str(i))
-        plt.show()
+
+        if plot:
+            plt.show()
 
     return True
 
 
-def sendCaseThree(server, client, goal, action_name):
+def sendCaseThree(server, client, goal, action_name, plot=False):
     """
         Run case study three.
 
@@ -451,17 +457,17 @@ def sendCaseThree(server, client, goal, action_name):
         makeThirdCasePlot('k', 'grey', 'darkblue',
                           '-', lbl=r"$\alpha = \frac{\mu_2}{\mu_1 + \mu_2}$")
         saveFig(dir, "reljac_masterslave_" + str(i))
-        plt.show()
+
+        if plot:
+            plt.show()
 
 
 if __name__ == "__main__":
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, qnorm
     rospy.init_node("run_sims")
-    top_server = actionlib.SimpleActionServer(
-        "/coordination_simulations/initialize", RunSimulationAction)
+    top_server = actionlib.SimpleActionServer("/coordination_simulations/initialize", RunSimulationAction, auto_start=False)
     coordination_action_name = "coordination_controller/coordination_control"
-    coordination_client = actionlib.SimpleActionClient(
-        coordination_action_name, CoordinationControllerAction)
+    coordination_client = actionlib.SimpleActionClient(coordination_action_name, CoordinationControllerAction)
     object_server_name = "/object_server/toggle_marker_update"
     object_client = rospy.ServiceProxy(object_server_name, SetBool)
     sim_reset = rospy.ServiceProxy("/state_reset", Empty)
@@ -478,6 +484,7 @@ if __name__ == "__main__":
 
     rospy.loginfo("Waiting for coordination action server...")
     coordination_client.wait_for_server()
+    top_server.start()
 
     while not rospy.is_shutdown():
         try:
@@ -507,22 +514,26 @@ if __name__ == "__main__":
             success = True
             # TEST CASE I
             if goal.case_one:
-                success = sendCaseOne(top_server, coordination_client, coordination_goal, coordination_action_name)
+                success = sendCaseOne(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)
 
             coordination_goal.max_time = 10.0
 
             # TEST CASE II
             if goal.case_two and success:
-                success = sendCaseTwo(top_server, coordination_client, coordination_goal, coordination_action_name)
+                success = sendCaseTwo(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)
 
             # TEST CASE III
             if goal.case_three and success:
-                success = sendCaseThree(top_server, coordination_client, coordination_goal, coordination_action_name)
+                success = sendCaseThree(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)
 
             if success:
                 top_server.set_succeeded()
 
         except rospy.exceptions.ROSTimeMovedBackwardsException, e:
-            rospy.logwarn("Simulation reset detected")
-            top_server.set_aborted()
+            rospy.logwarn("Simulation reset detected. Restart action client.")
+            if top_server.is_active():
+                top_server.set_aborted()
+
+            top_server = actionlib.SimpleActionServer("/coordination_simulations/initialize", RunSimulationAction, auto_start=False)
+            top_server.start()
             continue
