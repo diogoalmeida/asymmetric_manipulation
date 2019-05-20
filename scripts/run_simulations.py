@@ -177,7 +177,7 @@ def makeFirstCasePlot(iter, color='k', title=None):
     matplotlib.rcParams['figure.figsize'] = (8, 8)
     fig = plt.figure(iter)
     plt.subplot(211)
-    plt.ylim(-0.1, 0.025)
+    plt.ylim(-0.1, 0.18)
     plt.plot(t[1:], va[1:, 0], color="k", label="$v_x$")
     plt.plot(t[1:], va[1:, 1], color="r", label="$v_y$")
     plt.plot(t[1:], va[1:, 2], color="b", label="$v_z$")
@@ -185,7 +185,7 @@ def makeFirstCasePlot(iter, color='k', title=None):
     plt.legend()
     plt.title(title)
     plt.subplot(212)
-    plt.ylim(-0.1, 0.2)
+    plt.ylim(-0.1, 0.4)
     plt.plot(t[1:], va[1:, 3], color="k", label=r"$\omega_x$")
     plt.plot(t[1:], va[1:, 4], color="r", label=r"$\omega_y$")
     plt.plot(t[1:], va[1:, 5], color="b", label=r"$\omega_z$")
@@ -413,6 +413,9 @@ def sendCaseTwo(server, client, goal, action_name, plot=False):
 
         if plot:
             plt.show()
+        else:
+            plt.close()
+
 
     return True
 
