@@ -258,6 +258,8 @@ geometry_msgs::Pose CoordinationController::computeAbsolutePose(
   feedback_.absolute_angle = abs_aa.angle();
   feedback_.obj1_angle = aa1.angle();
   feedback_.obj2_angle = aa2.angle();
+  tf::pointKDLToMsg(p1.p, feedback_.p1);
+  tf::pointKDLToMsg(p2.p, feedback_.p2);
   return p_avg;
 }
 

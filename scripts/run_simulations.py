@@ -62,7 +62,7 @@ qnorm = 0
 
 
 def resetVars():
-    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time, relative_error, relative_error_angle, va, qnorm
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time, relative_error, relative_error_angle, va, qnorm, p1, angle1
     init_time = rospy.Time(0)
     t = np.array([])
     abs_pose = np.array(None)
@@ -72,11 +72,13 @@ def resetVars():
     relative_error = np.array(None)
     relative_error_angle = np.array([])
     va = np.array(None)
+    p1 = np.array(None)
+    angle1 = np.array([])
     qnorm = 0
 
 
 def feedbackCb(m):
-    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time, relative_error, relative_error_angle, va, qnorm
+    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, init_time, relative_error, relative_error_angle, va, qnorm, p1, angle1
 
     if init_time == rospy.Time(0):
         init_time = rospy.Time.now()
@@ -107,9 +109,15 @@ def feedbackCb(m):
         va = np.append(va, [[m.feedback.va.linear.x, m.feedback.va.linear.y, m.feedback.va.linear.z,
                              m.feedback.va.angular.x, m.feedback.va.angular.y, m.feedback.va.angular.z]], axis=0)
 
+    if p1.any() == None:
+        p1 = np.array([[m.feedback.p1.x, m.feedback.p1.y, m.feedback.p1.z]])
+    else:
+        p1 = np.append(p1, [[m.feedback.p1.x, m.feedback.p1.y, m.feedback.p1.z]], axis=0)
+
     relative_error_angle = np.append(relative_error_angle, [m.feedback.relative_error_angle])
     manip1 = np.append(manip1, [m.feedback.manip1])
     manip2 = np.append(manip2, [m.feedback.manip2])
+    angle1 = np.append(angle1, [m.feedback.obj1_angle])
     computed_alpha = np.append(computed_alpha, [m.feedback.curr_alpha])
 
 
@@ -246,25 +254,21 @@ def makeErrorPlot(color='k', lbl=True, line='-'):
     plt.tight_layout()
 
 
-def makeThirdCasePlot(c_alpha='k', c_mu1='c', c_mu2='darkorange', line='-', lbl=None, plot = False):
-    """Plot the execution alpha and the manipulability indices."""
-    global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha
+def makeThirdCasePlot():
+    """Plot the transient of the secondary task."""
+    global t, p1, angle1
     matplotlib.rcParams['figure.figsize'] = (9, 7)
     fig = plt.figure(1)
     plt.subplot(211)
-    plt.plot(t[2:], computed_alpha[2:], color=c_alpha, label=lbl)
-    plt.ylabel(r'$\alpha$')
-    plt.title(r"$\alpha$ Evolution")
+    plt.plot(t[2:], np.linalg.norm(p1[2] - p1[2:], axis=1))
+    plt.ylabel(r'[m]')
+    plt.title(r"$|p_d - p_1|$")
     plt.legend()
     plt.subplot(212)
-    plt.title(r"Manipulability measures")
-    plt.plot(t[2:], manip1[2:], color=c_mu1, linestyle=line, label=r"$\mu_1$")
-    plt.plot(t[2:], manip2[2:], color=c_mu2, linestyle=line, label=r"$\mu_2$")
+    plt.title(r"$|\vartheta_d - \vartheta_1|$")
+    plt.ylabel(r'[rad]')
+    plt.plot(t[2:], np.abs(angle1[2] - angle1[2:]))
     plt.xlabel('Time [s]')
-    plt.legend()
-
-    if plot:
-        plt.show()
 
 
 def sendCaseOne(server, client, goal, action_name, plot=False):
@@ -454,12 +458,13 @@ def sendCaseThree(server, client, goal, action_name, plot=False):
         if not success:
             break
 
-        makeThirdCasePlot('k', 'grey', 'darkblue',
-                          '-', lbl=r"$\alpha = \frac{\mu_2}{\mu_1 + \mu_2}$")
+        makeThirdCasePlot()
         saveFig(dir, "reljac_masterslave_" + str(i))
 
         if plot:
             plt.show()
+
+    return True
 
 
 if __name__ == "__main__":

@@ -25,3 +25,5 @@ geometry_msgs/Twist v2
 geometry_msgs/Twist va
 geometry_msgs/Point relative_error
 geometry_msgs/Point absolute_position
+geometry_msgs/Point p1
+geometry_msgs/Point p2
