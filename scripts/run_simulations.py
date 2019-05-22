@@ -271,9 +271,9 @@ def makeThirdCasePlot():
     plt.xlabel('Time [s]')
 
 
-def sendCaseOne(server, client, goal, action_name, plot=False):
+def sendCaseTwo(server, client, goal, action_name, plot=False):
     """
-        Run case study one experiments.
+        Run case study two experiments.
 
         This compares the ECTS-based differential IK method with using the extended
         relative Jacobian.
@@ -355,9 +355,9 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
     return True
 
 
-def sendCaseTwo(server, client, goal, action_name, plot=False):
+def sendCaseOne(server, client, goal, action_name, plot=False):
     """
-        Run case study two.
+        Run case study one.
 
         In this case study, we illustrate the effects of having asymmetrical
         absolute motion as a functional redundancy of the cooperative manipulation
@@ -531,7 +531,7 @@ if __name__ == "__main__":
                 success = sendCaseTwo(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)
 
             # TEST CASE III
-            if goal.case_three and success:
+            if goal.example_1 and success:
                 success = sendCaseThree(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)
 
             if success:
