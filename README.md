@@ -2,6 +2,7 @@ Asymmetric Manipulation
 ===
 This ROS package includes the necessary code to replicate the results in our paper
 [Asymmetric Dual-Arm Task Execution using an Extended Relative Jacobian](https://arxiv.org/abs/1905.01248).
+
 In particular, it defines generic velocity controllers that implement different strategies for modeling
 the differential Kinematics of a dual-arm robotic manipulator, and the necessary configuration files to
 setup a numerical simulation of the different methods.
@@ -63,9 +64,21 @@ Available arguments
 
 Replicating our results
 ==
-The script `run_simulations.py` runs the simulations from which the article's results were obtained. After launching the Baxter's simulation by using the `experiments` launch file, run on a separate terminal
+The script `run_simulations.py` runs the simulations from which the article's results were obtained. Launch Baxter's simulation by using the `experiments` launch file,
+```
+ $ roslaunch asymmetric_manipulation experiments.launch
+```
+ then, on a separate terminal
 ```
 $ rosrun asymmetric_manipulation run_simulations.py
 ```
 
-**TODO** Pass arguments for plotting or saving results.
+You can now open RViz and import the `display.rviz` file in the `config/` directory (by pressing `CTRL + o` and navigating to the directoy where the package is installed). You should see the following view
+![rviz](https://raw.githubusercontent.com/diogoalmeida/asymmetric_manipulation/5b56651eeabc34e2ff45c1f6806acaaa1061f26b/RViz.png)
+
+You can move the interactive markers to set the object frames for each manipulator. The relative motion task consists in aligning these two frames.
+To replicate the article's case studies and example, you can send a goal to the appropriate action server,
+```
+$ rosrun asymmetric_manipulation run_simulations.py
+```
+You can now choose which cases to run by setting the corresponding parameter to `true`.
