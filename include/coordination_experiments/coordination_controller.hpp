@@ -52,7 +52,7 @@ class CoordinationController
   std::map<int, unsigned int> num_joints_;
   double max_joint_pos_error_, max_time_;
   Eigen::VectorXd target_joint_positions_;
-  Eigen::MatrixXd Kp_r_;
+  Eigen::MatrixXd Kp_r_, Kp_a_;
   Eigen::VectorXd q1_init_, q2_init_;
   Eigen::Matrix<double, 6, 1> commanded_rel_twist_;
   bool newGoal_;

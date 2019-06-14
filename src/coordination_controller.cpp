@@ -92,8 +92,8 @@ sensor_msgs::JointState CoordinationController::controlAlgorithm(
 
   updateOrientationTransform(current_state);
 
-  Eigen::VectorXd joint_velocities =
-      alg_->control(current_state, r1, r2, 0 * abs_twist, Kp_r_ * rel_twist);
+  Eigen::VectorXd joint_velocities = alg_->control(
+      current_state, r1, r2, Kp_a_ * abs_twist, Kp_r_ * rel_twist);
 
   alg_->getVelocities(v1, v2);
 
@@ -582,6 +582,12 @@ bool CoordinationController::init()
 
   if (!generic_control_toolbox::MatrixParser::parseMatrixData(
           Kp_r_, "relative_gain", nh_))
+  {
+    return false;
+  }
+
+  if (!generic_control_toolbox::MatrixParser::parseMatrixData(
+          Kp_a_, "absolute_gain", nh_))
   {
     return false;
   }
