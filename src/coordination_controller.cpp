@@ -622,10 +622,10 @@ bool CoordinationController::init()
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "coordination_controller");
-  coordination_experiments::CoordinationController controller(
-      "coordination_control");
-  generic_control_toolbox::ControllerActionNode action_node;
-
-  action_node.runController(controller);
+  std::shared_ptr<generic_control_toolbox::ControllerBase> controller(
+      new coordination_experiments::CoordinationController(
+          "coordination_control"));
+  EmbeddedSimulator sim(controller);
+  sim.run();
   return 0;
 }

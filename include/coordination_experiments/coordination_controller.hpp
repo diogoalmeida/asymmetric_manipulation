@@ -14,6 +14,7 @@
 #include <asymmetric_manipulation/rel_jac_abs_lim.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <generic_control_toolbox/controller_template.hpp>
+#include <robot_kinematic_simulation/embedded_sim.hpp>
 
 const int LEFT = 0, RIGHT = 1;
 enum ControlType
