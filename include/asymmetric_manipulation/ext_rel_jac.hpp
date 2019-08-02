@@ -34,7 +34,7 @@ class ExtRelJac : public AlgorithmBase
                       const Eigen::MatrixXd &J2) const;
 
   /**
-    Compute the asymmetric relatice Jacobian.
+    Compute the asymmetric relative Jacobian.
 
     @param J The diagonal of the two arms' Jacobians.
     @param W The wrench conversion matrix.
@@ -43,6 +43,9 @@ class ExtRelJac : public AlgorithmBase
   **/
   Eigen::MatrixXd computeAsymJac(const Eigen::MatrixXd &J, const Matrix12d &W,
                                  double alpha) const;
+
+  Eigen::MatrixXd computeAsymAbsJac(const Eigen::MatrixXd &J,
+                                    const Matrix12d &W, double alpha) const;
 };
 }  // namespace coordination_algorithms
 

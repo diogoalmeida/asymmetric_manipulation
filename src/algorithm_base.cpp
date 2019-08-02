@@ -11,7 +11,8 @@ AlgorithmBase::AlgorithmBase(const Vector3d &pos_upper_ct,
       pos_upper_ct_(pos_upper_ct),
       pos_lower_ct_(pos_lower_ct),
       ori_ct_(ori_ct),
-      joint_manip_(0.0)
+      joint_manip_(0.0),
+      use_sec_abs_(false)
 {
   if (!init())
   {

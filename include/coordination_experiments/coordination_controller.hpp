@@ -14,6 +14,7 @@
 #include <asymmetric_manipulation/rel_jac_abs_lim.hpp>
 #include <generic_control_toolbox/controller_action_node.hpp>
 #include <generic_control_toolbox/controller_template.hpp>
+#include <mutex>
 #include <robot_kinematic_simulation/embedded_sim.hpp>
 
 const int LEFT = 0, RIGHT = 1;
@@ -68,6 +69,7 @@ class CoordinationController
   rviz_visual_tools::RvizVisualToolsPtr pos_ws_pub_;
   rviz_visual_tools::RvizVisualToolsPtr ori_ws_pub_;
   std::string base_;
+  std::mutex alg_mtx_;
 
   /**
     Initialize experiment parameters. This will set up rigid transforms between

@@ -40,9 +40,6 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   J_abs = J;
   J.block(0, 0, 6, J1_kdl.columns()) = J1_kdl.data;
   J.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) = J2_kdl.data;
-  J_abs.block(0, 0, 6, J1_kdl.columns()) = W.block<6, 6>(0, 0) * J1_kdl.data;
-  J_abs.block(6, J1_kdl.columns(), 6, J2_kdl.columns()) =
-      W.block<6, 6>(6, 6) * J2_kdl.data;
 
   if (dynamic_alpha_)
   {
@@ -50,6 +47,7 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   }
 
   J_asym = computeAsymJac(J, W, alpha_);
+  J_abs = computeAsymAbsJac(J, W, alpha_);
   joint_manip_ = std::sqrt((J_asym * J_asym.transpose()).determinant());
   J_sym = computeAsymJac(J, W, 0.5);
   J_comb = Eigen::MatrixXd::Zero(J_asym.rows() + J_sym.rows(), J_asym.cols());
@@ -62,30 +60,24 @@ Eigen::VectorXd ExtRelJac::control(const sensor_msgs::JointState &state,
   MatrixInvRelativeJacd damped_asym_inverse =
       J_asym.transpose() *
       (J_asym * J_asym.transpose() + damping_ * Matrix6d::Identity()).inverse();
-  MatrixInvECTSd damped_comb_inverse =
-      J_comb.transpose() *
-      (J_comb * J_comb.transpose() + damping_ * Matrix12d::Identity())
-          .inverse();
-
-  Vector6d sec_twist = computeAbsTask(abs_pose_);
-  Vector12d full_sec_twist = Vector12d::Zero();
-  full_sec_twist.block<6, 1>(0, 0) = sec_twist;
-  full_sec_twist.block<6, 1>(6, 0) = sec_twist;
-  MatrixInvECTSd damped_abs_inverse =
+  MatrixInvRelativeJacd damped_abs_inverse =
       J_abs.transpose() *
-      (J_abs * J_abs.transpose() + damping_ * Matrix12d::Identity()).inverse();
+      (J_abs * J_abs.transpose() + damping_ * Matrix6d::Identity()).inverse();
 
   Eigen::VectorXd qdot_asym = damped_asym_inverse * rel_twist;
   Eigen::VectorXd qdot_sym = damped_sim_inverse * rel_twist;
-  Eigen::VectorXd qdot_abs =
-      use_absolute_limits_ * damped_abs_inverse * full_sec_twist;
+  Eigen::VectorXd qdot_abs = damped_abs_inverse * abs_twist;
   Eigen::VectorXd qdot;
 
   if (!onlyl_)
   {
     qdot = qdot_sym +
-           (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_asym +
-           (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_abs;
+           (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_asym;
+
+    if (use_sec_abs_)
+    {
+      qdot += (Matrix14d::Identity() - damped_sim_inverse * J_sym) * qdot_abs;
+    }
   }
   else
   {
@@ -109,6 +101,18 @@ Eigen::MatrixXd ExtRelJac::computeAsymJac(const Eigen::MatrixXd &J,
 
   L.block<6, 6>(0, 0) = -(1 - alpha) * scaling * Matrix6d::Identity();
   L.block<6, 6>(0, 6) = alpha * scaling * Matrix6d::Identity();
+
+  return L * W * J;
+}
+
+Eigen::MatrixXd ExtRelJac::computeAsymAbsJac(const Eigen::MatrixXd &J,
+                                             const Matrix12d &W,
+                                             double alpha) const
+{
+  MatrixRelLinkingd L = MatrixRelLinkingd::Zero();
+
+  L.block<6, 6>(0, 0) = alpha * Matrix6d::Identity();
+  L.block<6, 6>(0, 6) = (1 - alpha) * Matrix6d::Identity();
 
   return L * W * J;
 }

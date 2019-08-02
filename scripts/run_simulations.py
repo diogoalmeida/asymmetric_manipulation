@@ -2,6 +2,7 @@
 import datetime
 import os
 import sys
+import time
 
 import actionlib
 import matplotlib
@@ -59,6 +60,8 @@ relative_error = np.array(None)
 relative_error_angle = np.array([])
 va = np.array(None)
 qnorm = 0
+p1 = np.array(None)
+angle1 = np.array([])
 
 
 def resetVars():
@@ -168,6 +171,7 @@ def setManipulationTargets(case, iter, list):
         req.marker_name += [frame_names[arm]]
         req.marker_pose += [msg_in_parent.pose]
 
+    rospy.loginfo("Sending object server request")
     resp = obj_server(req)
 
 
@@ -380,7 +384,9 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
             server.set_aborted()
             return False
 
+        rospy.loginfo("Simulation was reset successfully")
         setManipulationTargets('II', i, list)
+        rospy.loginfo("Set manipulation targets")
 
         # run proposed jacobian without nullspace projection
         goal.control_mode.controller = goal.control_mode.EXTRELJAC
@@ -388,8 +394,9 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
         goal.use_asymmetric_l_only = True
 
         feedback.feedback = "ERelJac (no nullspace proj) with alpha = " + str(goal.alpha)
-        server.publish_feedback(feedback)
+        # server.publish_feedback(feedback)
 
+        rospy.loginfo("Sending goal")
         success = monitor_action_goal(
             server, client, goal, action_name=action_name)
 
@@ -401,7 +408,7 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
 
         goal.use_asymmetric_l_only = False
         feedback.feedback = "ERelJac with alpha = " + str(goal.alpha)
-        server.publish_feedback(feedback)
+        # server.publish_feedback(feedback)
         success = monitor_action_goal(
             server, client, goal, action_name=action_name)
 
@@ -499,7 +506,7 @@ if __name__ == "__main__":
             while not (top_server.is_new_goal_available() or rospy.is_shutdown()):
                 rospy.loginfo_throttle(
                     60, "Run simulations action server waiting for goal...")
-                rospy.sleep(0.5)
+                time.sleep(0.5)
 
             dir = getDir()
             if rospy.is_shutdown():
@@ -520,6 +527,7 @@ if __name__ == "__main__":
                 continue
 
             success = True
+            rospy.loginfo("New goal acquired!")
             # TEST CASE I
             if goal.case_one:
                 success = sendCaseOne(top_server, coordination_client, coordination_goal, coordination_action_name, goal.show_plots)

@@ -27,9 +27,15 @@ void CoordinationController::twistCommandCb(
 sensor_msgs::JointState CoordinationController::controlAlgorithm(
     const sensor_msgs::JointState &current_state, const ros::Duration &dt)
 {
+  std::lock_guard<std::mutex> guard(alg_mtx_);
   sensor_msgs::JointState ret = current_state;
   Eigen::VectorXd q1, q2;
   double x, y, z, w;
+
+  if (!alg_)
+  {
+    return current_state;
+  }
 
   alg_->kdl_manager_->getJointPositions(alg_->eef1_, current_state, q1);
   alg_->kdl_manager_->getJointPositions(alg_->eef2_, current_state, q2);
@@ -282,6 +288,8 @@ bool CoordinationController::parseGoal(
     boost::shared_ptr<const asymmetric_manipulation::CoordinationControllerGoal>
         goal)
 {
+  std::lock_guard<std::mutex> guard(alg_mtx_);
+  alg_.reset();
   std_srvs::Empty srv;
 
   tf::pointMsgToEigen(goal->limits.position_max_limits, pos_upper_ct_);
@@ -295,7 +303,7 @@ bool CoordinationController::parseGoal(
                              rviz_visual_tools::PINK);
   pos_ws_pub_->trigger();
 
-  // ori_ws_pub_->trigger();
+  ori_ws_pub_->trigger();
 
   if (goal->control_mode.controller == goal->control_mode.RESET)
   {
@@ -367,6 +375,7 @@ bool CoordinationController::parseGoal(
 
   alg_->setAbsoluteLimits(goal->use_limits);
   alg_->setDynamicAlpha(goal->dynamic_alpha);
+  alg_->setSecAbs(goal->secondary_abs);
 
   if (!goal->dynamic_alpha)
   {
@@ -381,11 +390,13 @@ bool CoordinationController::parseGoal(
 
   if (!alg_->kdl_manager_->getNumJoints(alg_->eef1_, num_joints_[LEFT]))
   {
+    ROS_ERROR("Failed to get left arm's number of joints");
     return false;
   }
 
   if (!alg_->kdl_manager_->getNumJoints(alg_->eef2_, num_joints_[RIGHT]))
   {
+    ROS_ERROR("Failed to get right arm's number of joints");
     return false;
   }
 
@@ -404,6 +415,7 @@ bool CoordinationController::parseGoal(
   if (!initializeObjectFrames())  // if control_type_ is twist we use obj1 as
                                   // C-Frame
   {
+    ROS_ERROR("Failed to initialize object's frames");
     return false;
   }
 

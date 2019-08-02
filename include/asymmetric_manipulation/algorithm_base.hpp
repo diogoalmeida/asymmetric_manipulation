@@ -77,6 +77,7 @@ obtain joint velocities for the two manipulators.
   **/
   void setAbsoluteLimits(bool val) { use_absolute_limits_ = val; }
 
+  void setSecAbs(bool val) { use_sec_abs_ = val; }
   /**
     Provides the algorithm with information on the absolute pose of the
   dual-armed system.
@@ -100,7 +101,7 @@ obtain joint velocities for the two manipulators.
 
  protected:
   ros::NodeHandle nh_;
-  bool dynamic_alpha_, use_absolute_limits_;
+  bool dynamic_alpha_, use_absolute_limits_, use_sec_abs_;
   double alpha_, damping_, joint_manip_;
   geometry_msgs::Pose abs_pose_;
   Vector6d abs_twist_, v1_, v2_;
