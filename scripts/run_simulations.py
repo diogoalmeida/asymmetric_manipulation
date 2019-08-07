@@ -22,6 +22,9 @@ from geometry_msgs.msg import PoseStamped, TransformStamped
 from mpl_toolkits.mplot3d import Axes3D
 from object_server.srv import SetMarkers, SetMarkersRequest
 from std_srvs.srv import Empty, SetBool
+import matplotlib as mpl
+from cycler import cycler
+import seaborn as sns
 
 init_obj_frames = {
     'I': [{
@@ -175,29 +178,47 @@ def setManipulationTargets(case, iter, list):
     resp = obj_server(req)
 
 
-def makeFirstCasePlot(iter, color='k', title=None):
+def makeFirstCasePlot(iter, color='k', title=None, trans=True):
     """Should plot the absolute trajectory of a system run."""
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, va
     matplotlib.rcParams['figure.figsize'] = (8, 8)
+    pastel = (cycler('color', sns.color_palette("dark", 3).as_hex()) *
+              cycler('linestyle', ['-']))
+    colors = sns.color_palette("dark", 3).as_hex()
+    plt.rc('axes', prop_cycle=pastel)
+
     fig = plt.figure(iter)
     plt.subplot(211)
     plt.ylim(-0.1, 0.18)
-    plt.plot(t[1:], va[1:, 0], color="k", label="$v_x$")
-    plt.plot(t[1:], va[1:, 1], color="r", label="$v_y$")
-    plt.plot(t[1:], va[1:, 2], color="b", label="$v_z$")
+    plt.plot(t[1:], va[1:, 0], label="$v_x$")
+    plt.plot(t[1:], va[1:, 1], label="$v_y$")
+    plt.plot(t[1:], va[1:, 2], label="$v_z$")
+    plt.xlim(0, t[-1])
     plt.ylabel("Linear [m/s]")
     plt.legend()
     plt.title(title)
+
+    if trans:
+        plt.ylim(-0.1, 0.15)
+    else:
+        plt.ylim(-0.1, 0.025)
+
     plt.subplot(212)
-    plt.ylim(-0.1, 0.4)
-    plt.plot(t[1:], va[1:, 3], color="k", label=r"$\omega_x$")
-    plt.plot(t[1:], va[1:, 4], color="r", label=r"$\omega_y$")
-    plt.plot(t[1:], va[1:, 5], color="b", label=r"$\omega_z$")
+    plt.plot(t[1:], va[1:, 3], label=r"$\omega_x$")
+    plt.plot(t[1:], va[1:, 4], label=r"$\omega_y$")
+    plt.plot(t[1:], va[1:, 5], label=r"$\omega_z$")
+    plt.xlim(0, t[-1])
+
+    if trans:
+        plt.ylim(-0.05, 0.4)
+    else:
+        plt.ylim(-0.1, 0.2)
 
     plt.ylabel("Angular [rad/s]")
     plt.xlabel("Time [s]")
     plt.legend()
     plt.tight_layout()
+    sns.despine()
 
 
 def makeSecondCasePlot(color='k', lbl=None):
@@ -225,44 +246,45 @@ def getDir():
     return path_name
 
 
-def makeErrorPlot(color='k', lbl=True, line='-'):
+def makeErrorPlot(color='k', lbl=True, line='-', figure=1):
     global t, relative_error, relative_error_angle
+    pastel = (cycler('color', sns.color_palette("dark", 3).as_hex()) *
+              cycler('linestyle', [':', '--', '-']))
+    colors = sns.color_palette("dark", 3).as_hex()
+    plt.rc('axes', prop_cycle=pastel)
+
     matplotlib.rcParams['figure.figsize'] = (8, 8)
-    fig = plt.figure(1)
+    fig = plt.figure(figure)
     plt.subplot(211)
     if lbl:
-        plt.plot(t[1:], relative_error[1:, 0],
-                 color="k", label=r"$x$", linestyle=line)
-        plt.plot(t[1:], relative_error[1:, 1],
-                 color="r", label=r"$y$", linestyle=line)
-        plt.plot(t[1:], relative_error[1:, 2],
-                 color="b", label=r"$z$", linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 0], color = colors[0], label=r"$x$", linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 1], color = colors[1], label=r"$y$", linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 2], color = colors[2], label=r"$z$", linestyle=line)
     else:
-        plt.plot(t[1:], relative_error[1:, 0],
-                 color="k", linestyle=line)
-        plt.plot(t[1:], relative_error[1:, 1],
-                 color="r", linestyle=line)
-        plt.plot(t[1:], relative_error[1:, 2],
-                 color="b", linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 0], color = colors[0], linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 1], color = colors[1], linestyle=line)
+        plt.plot(t[1:], relative_error[1:, 2], color = colors[2], linestyle=line)
     plt.ylabel("Error [m]")
     plt.title("Linear relative error")
+    plt.xlim(0, t[-1])
     plt.legend()
     plt.subplot(212)
-    plt.plot(t[1:], relative_error_angle[1:],
-             color="k", linestyle=line)
+    plt.plot(t[1:], relative_error_angle[1:], linestyle=line)
+    plt.xlim(0, t[-1])
 
     plt.ylabel("Angle [rad]")
     plt.xlabel("Time [s]")
     plt.title("Angular relative error")
     # plt.legend()
     plt.tight_layout()
+    sns.despine()
 
 
 def makeThirdCasePlot():
     """Plot the transient of the secondary task."""
     global t, p1, angle1
     matplotlib.rcParams['figure.figsize'] = (9, 7)
-    fig = plt.figure(1)
+    fig = plt.figure(plt.gcf().number + 1)
     plt.subplot(211)
     plt.plot(t[2:], np.linalg.norm(p1[2] - p1[2:], axis=1))
     plt.ylabel(r'[m]')
@@ -289,9 +311,17 @@ def sendCaseTwo(server, client, goal, action_name, plot=False):
 
         @returns False in case something fails, true otherwise.
     """
+    is_trans = True
     for i in range(len(init_obj_frames['I'])):
+        resetVars()
+        try:
+            resp = sim_reset()
+        except rospy.ServiceException, e:
+            rospy.logerr("Failed to contact the simulation: %s" % e)
+            server.set_aborted()
+            return False
+
         setManipulationTargets('I', i, list)
-        iter = 1
         for alpha in (8, ):
             resetVars()
             goal.alpha = alpha / 10.
@@ -312,13 +342,11 @@ def sendCaseTwo(server, client, goal, action_name, plot=False):
                 return False
 
             rospy.logwarn("JOINT SPACE NORM: %.2f" % qnorm)
-            makeFirstCasePlot(iter, 'k', r"Absolute motion (ECTS), $\alpha = " + str(alpha / 10.) + "$")
-            saveFig(dir, "abs_motion_ects_" + str(alpha / 10.) + "_" + str(i), iter)
+            makeFirstCasePlot(plt.gcf().number + 1, 'k', r"Absolute motion (ECTS), $\alpha = " + str(alpha / 10.) + "$", trans=is_trans)
+            saveFig(dir, "abs_motion_ects_" + str(alpha / 10.) + "_" + str(i), plt.gcf().number)
 
             if plot:
                 plt.show()
-            else:
-                plt.close()
 
             goal.control_mode.controller = goal.control_mode.EXTRELJAC
             resetVars()
@@ -336,25 +364,16 @@ def sendCaseTwo(server, client, goal, action_name, plot=False):
                 return False
 
             rospy.logwarn("JOINT SPACE NORM: %.2f" % qnorm)
-            makeFirstCasePlot(iter + 1, "k", r"Absolute motion (Ours), $\alpha = " + str(alpha / 10.) + "$")
+            makeFirstCasePlot(plt.gcf().number + 1, "k", r"Absolute motion (Ours), $\alpha = " + str(alpha / 10.) + "$", trans=is_trans)
 
-            saveFig(dir, "abs_motion_reljac_" + str(alpha / 10.) + "_" + str(i), iter + 1)
+            saveFig(dir, "abs_motion_reljac_" + str(alpha / 10.) + "_" + str(i), plt.gcf().number)
 
             if plot:
                 plt.show()
-            else:
-                plt.close()
 
-            iter += 2
+            is_trans = False
         if not success:
             break
-
-        try:
-            resp = sim_reset()
-        except rospy.ServiceException, e:
-            rospy.logerr("Failed to contact the simulation: %s" % e)
-            server.set_aborted()
-            return False
 
     return True
 
@@ -403,7 +422,7 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
         if not success:
             return False
 
-        makeErrorPlot('grey', False, '--')
+        makeErrorPlot('grey', False, '--', figure=i)
         resetVars()
 
         goal.use_asymmetric_l_only = False
@@ -415,14 +434,11 @@ def sendCaseOne(server, client, goal, action_name, plot=False):
         if not success:
             return False
 
-        makeErrorPlot('k', True)
-        saveFig(dir, "asymmetric_only_" + str(i))
+        makeErrorPlot('k', True, figure=i)
+        saveFig(dir, "asymmetric_only_" + str(i), i)
 
         if plot:
             plt.show()
-        else:
-            plt.close()
-
 
     return True
 
@@ -479,6 +495,12 @@ def sendCaseThree(server, client, goal, action_name, plot=False):
 
 if __name__ == "__main__":
     global t, abs_pose, effective_alpha, manip1, manip2, computed_alpha, qnorm
+    pastel = (cycler('color', sns.color_palette("dark", 4).as_hex()) +
+              cycler('linestyle', [':', '--', '-', '.']))
+    plt.rc('axes', prop_cycle=pastel)
+
+    sns.set_style("ticks")
+    sns.set_context("talk", font_scale=1.35)
     rospy.init_node("run_sims")
     top_server = actionlib.SimpleActionServer("/coordination_simulations/initialize", RunSimulationAction, auto_start=False)
     coordination_action_name = "coordination_controller/coordination_control"
@@ -491,10 +513,6 @@ if __name__ == "__main__":
                      CoordinationControllerFeedback, feedbackCb, queue_size=1)
 
     gray = (0.85, 0.87, 0.89)
-    matplotlib.rcParams['font.size'] = 22
-    matplotlib.rcParams['lines.linewidth'] = 2
-    matplotlib.rcParams['figure.subplot.wspace'] = 0.4
-    matplotlib.rcParams['figure.subplot.hspace'] = 0.35
     feedback = RunSimulationFeedback()
 
     rospy.loginfo("Waiting for coordination action server...")
